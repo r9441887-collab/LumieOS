@@ -1,0 +1,3 @@
+@echo -=== LumieOS ===-
+@echo Booting LumieOS...
+BOOTX64.EFI
