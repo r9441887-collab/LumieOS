@@ -11,13 +11,13 @@ typedef efi_status (*efi_bs_cc_t)(efi_handle, efi_handle*, efi_handle*, u8);
 
 /* ===== UEFI Protocol GUIDs ===== */
 #define EFI_SIMPLE_NETWORK_PROTOCOL_GUID \
-    {0xA19832B9, 0xAC25, 0x11D3, {0x9A,0x2D,0x00,0x90,0x27,0x3F,0xC1,0x4D}}
+ {0xA19832B9, 0xAC25, 0x11D3, {0x9A,0x2D,0x00,0x90,0x27,0x3F,0xC1,0x4D}}
 
 #define EFI_IP4_CONFIG2_PROTOCOL_GUID \
-    {0x5B446ED1, 0xE30B, 0x4FAA, {0x87,0x1A,0x36,0x54,0xEC,0xA3,0x60,0x80}}
+ {0x5B446ED1, 0xE30B, 0x4FAA, {0x87,0x1A,0x36,0x54,0xEC,0xA3,0x60,0x80}}
 
 #define EFI_HTTP_PROTOCOL_GUID \
-    {0x7A59B29B, 0x910B, 0x4251, {0xAD,0xE4,0x47,0x34,0x96,0xAA,0x58,0xEE}}
+ {0x7A59B29B, 0x910B, 0x4251, {0xAD,0xE4,0x47,0x34,0x96,0xAA,0x58,0xEE}}
 
 /* ===== Simple Network Protocol ===== */
 typedef enum {
@@ -33,15 +33,15 @@ typedef struct {
     u32 MaxPacketSize;
     u32 NvRamSize;
     u32 NvRamAccessSize;
-    u8  PermanentAddress[32];
-    u8  CurrentAddress[32];
-    u8  BroadcastAddress[32];
-    u8  StationAddress[32];
+    u8 PermanentAddress[32];
+    u8 CurrentAddress[32];
+    u8 BroadcastAddress[32];
+    u8 StationAddress[32];
     u32 IfType;
-    u8  MacAddressChangeable;
-    u8  MultipleTxSupported;
-    u8  MediaPresentSupported;
-    u8  MediaPresent;
+    u8 MacAddressChangeable;
+    u8 MultipleTxSupported;
+    u8 MediaPresentSupported;
+    u8 MediaPresent;
 } efi_simple_network_mode;
 
 typedef struct _efi_simple_network_protocol {
@@ -71,11 +71,11 @@ typedef enum {
 #define Ip4Config2DataTypeInterfaceInfo 0
 
 typedef struct {
-    u8  StationAddress[4];
-    u8  SubnetMask[4];
-    u8  GatewayAddress[4];
-    u8  PrimaryDns[4];
-    u8  SecondaryDns[4];
+    u8 StationAddress[4];
+    u8 SubnetMask[4];
+    u8 GatewayAddress[4];
+    u8 PrimaryDns[4];
+    u8 SecondaryDns[4];
 } efi_ip4_config2_interface_info;
 
 typedef struct _efi_ip4_config2_protocol {
@@ -106,31 +106,31 @@ typedef struct {
 
 typedef struct {
     efi_http_method Method;
-    char16         *Url;
-    void            *RequestMessage; /* unused for simple GET */
+    char16 *Url;
+    void *RequestMessage; /* unused for simple GET */
 } efi_http_request_data;
 
 typedef struct {
-    u32    StatusCode; /* HTTP status like 200 */
-    void  **Headers;   /* not used by us */
-    u32    HeaderCount;
+    u32 StatusCode; /* HTTP status like 200 */
+    void **Headers; /* not used by us */
+    u32 HeaderCount;
 } efi_http_response_data;
 
 typedef struct {
-    u8      IsRequest; /* 1=request, 0=response */
+    u8 IsRequest; /* 1=request, 0=response */
     union {
-        efi_http_request_data  *Request;
+        efi_http_request_data *Request;
         efi_http_response_data *Response;
     } Data;
     efi_http_header *Headers;
-    u32              HeaderCount;
-    u64              BodyLength;
-    void             *Body;
+    u32 HeaderCount;
+    u64 BodyLength;
+    void *Body;
 } efi_http_message;
 
 typedef struct {
-    efi_event        Event;
-    efi_status       Status;
+    efi_event Event;
+    efi_status Status;
     efi_http_message *Message;
 } efi_http_token;
 
@@ -145,10 +145,10 @@ typedef struct _efi_http_protocol {
 
 /* ===== TLS Protocol (UEFI 2.5+) ===== */
 #define EFI_TLS_CONFIGURATION_PROTOCOL_GUID \
-    {0xB92B20EB, 0x6729, 0x4517, {0x90,0x11,0xC7,0xE3,0x6E,0x3D,0x3C,0xB8}}
+ {0xB92B20EB, 0x6729, 0x4517, {0x90,0x11,0xC7,0xE3,0x6E,0x3D,0x3C,0xB8}}
 
 #define EFI_TLS_PROTOCOL_GUID \
-    {0xCA37CCC1, 0x9EC1, 0x4B7B, {0x8B,0x1B,0x1F,0x2E,0x17,0xD2,0x3B,0x49}}
+ {0xCA37CCC1, 0x9EC1, 0x4B7B, {0x8B,0x1B,0x1F,0x2E,0x17,0xD2,0x3B,0x49}}
 
 typedef struct _efi_tls_configuration_protocol {
     efi_status (*SetData)(struct _efi_tls_configuration_protocol*, u32, void*, u32);
@@ -156,9 +156,9 @@ typedef struct _efi_tls_configuration_protocol {
 } efi_tls_configuration_protocol;
 
 typedef enum {
-    EfiTlsPacketTypeData      = 0,
+    EfiTlsPacketTypeData = 0,
     EfiTlsPacketTypeHandshake = 1,
-    EfiTlsPacketTypeAlert     = 2,
+    EfiTlsPacketTypeAlert = 2,
 } efi_tls_packet_type;
 
 typedef struct _efi_tls_protocol {
@@ -171,23 +171,28 @@ typedef struct _efi_tls_protocol {
 
 /* ===== Internal State ===== */
 static efi_http_protocol *g_http = NULL;
-static int  g_net_initialized = 0;
-static int  g_tls_available = 0;
-static u8   g_local_ip[4];
-static u8   g_gateway_ip[4];
-static u8   g_dns_ip[4];
-static u8   g_our_mac[6];
-static int  g_use_raw_http = 0;
+static int g_net_initialized = 0;
+static int g_tls_available = 0;
+static u8 g_local_ip[4];
+static u8 g_gateway_ip[4];
+static u8 g_dns_ip[4];
+static u8 g_our_mac[6];
+static int g_use_raw_http = 0;
 static efi_simple_network_protocol *g_snp = NULL;
 static efi_tls_protocol *g_tls_raw = NULL;
 
+/* FIX: Added global IP identification counter for fragmentation support.
+ * IP identification field should be unique per fragment of a packet.
+ * Using a simple counter that wraps around. */
+static u16 g_ip_id_counter = 0;
+
 /* ===== URL Table for renet ===== */
 static net_url_entry g_renet_urls[] = {
-    {"gcc",       "https://mirrors.kernel.org/gnu/gcc/gcc-14.2.0/gcc-14.2.0.tar.xz",   "http://mirrors.kernel.org/gnu/gcc/gcc-14.2.0/gcc-14.2.0.tar.xz"},
-    {"g++",       "https://mirrors.kernel.org/gnu/gcc/gcc-14.2.0/gcc-14.2.0.tar.xz",   "http://mirrors.kernel.org/gnu/gcc/gcc-14.2.0/gcc-14.2.0.tar.xz"},
-    {"binutils",  "https://mirrors.kernel.org/gnu/binutils/binutils-2.43.tar.xz",       "http://mirrors.kernel.org/gnu/binutils/binutils-2.43.tar.xz"},
-    {"make",      "https://mirrors.kernel.org/gnu/make/make-4.4.1.tar.gz",              "http://mirrors.kernel.org/gnu/make/make-4.4.1.tar.gz"},
-    {"", "", ""}
+ {"gcc", "https://mirrors.kernel.org/gnu/gcc/gcc-14.2.0/gcc-14.2.0.tar.xz", "http://mirrors.kernel.org/gnu/gcc/gcc-14.2.0/gcc-14.2.0.tar.xz"},
+ {"g++", "https://mirrors.kernel.org/gnu/gcc/gcc-14.2.0/gcc-14.2.0.tar.xz", "http://mirrors.kernel.org/gnu/gcc/gcc-14.2.0/gcc-14.2.0.tar.xz"},
+ {"binutils", "https://mirrors.kernel.org/gnu/binutils/binutils-2.43.tar.xz", "http://mirrors.kernel.org/gnu/binutils/binutils-2.43.tar.xz"},
+ {"make", "https://mirrors.kernel.org/gnu/make/make-4.4.1.tar.gz", "http://mirrors.kernel.org/gnu/make/make-4.4.1.tar.gz"},
+ {"", "", ""}
 };
 
 /* ===== Helpers ===== */
@@ -232,7 +237,7 @@ static void pci_connect_all(void) {
     efi_guid pci_rb_guid = {0x2F707EBB, 0x4A1A, 0x11D4, {0x9A, 0x38, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D}};
 
     efi_bs_lhb_t lhb = (efi_bs_lhb_t)g_BS->LocateHandleBuffer;
-    efi_bs_cc_t  cc  = (efi_bs_cc_t)g_BS->ConnectController;
+    efi_bs_cc_t cc = (efi_bs_cc_t)g_BS->ConnectController;
     u64 cnt = 0;
     efi_handle *buf = NULL;
 
@@ -273,39 +278,42 @@ static u32 pci_cfg_read(u8 bus, u8 dev, u8 func, u8 off) {
 int net_init() {
     if (g_net_initialized) return 0;
     efi_status status;
-    efi_simple_network_protocol  *snp = NULL;
-    efi_ip4_config2_protocol     *ip4cfg2 = NULL;
+    efi_simple_network_protocol *snp = NULL;
+    efi_ip4_config2_protocol *ip4cfg2 = NULL;
     g_snp = NULL;
-    efi_guid snp_guid    = EFI_SIMPLE_NETWORK_PROTOCOL_GUID;
+    efi_guid snp_guid = EFI_SIMPLE_NETWORK_PROTOCOL_GUID;
     efi_guid ip4cfg2_guid = EFI_IP4_CONFIG2_PROTOCOL_GUID;
-    efi_guid http_guid   = EFI_HTTP_PROTOCOL_GUID;
+    efi_guid http_guid = EFI_HTTP_PROTOCOL_GUID;
 
     term_write("Net: ");
 
     /* RTL8168 driver ready flag */
     g_rtl_ready = 0;
 
-    /* 0 – Force UEFI to connect PCI network drivers */
+    /* Initialize IP identification counter */
+    g_ip_id_counter = 1;
+
+    /* [1/7] Force UEFI to connect PCI network drivers */
     pci_connect_all();
 
-    /* 1 – SNP */
+    /* [2/7] SNP - Simple Network Protocol */
     status = ((efi_bs_locate_protocol)g_BS->LocateProtocol)(&snp_guid, NULL, (void**)&snp);
     if (!EFI_ERROR(status) && snp) {
         g_snp = snp;
         lumie_memcpy(g_our_mac, snp->Mode->CurrentAddress, 6);
         if (snp->Mode->State == EfiSimpleNetworkStopped) {
             status = snp->Start(snp);
-            if (EFI_ERROR(status)) { term_writeln("snp-start FAIL"); goto http_try; }
+            if (EFI_ERROR(status)) { g_snp = NULL; term_writeln("[STAGE2] snp-start FAIL"); goto http_try; }
         }
         if (snp->Mode->State == EfiSimpleNetworkStarted) {
             status = snp->Initialize(snp, 0, 0);
-            if (EFI_ERROR(status)) { term_writeln("snp-init FAIL"); goto http_try; }
+            if (EFI_ERROR(status)) { g_snp = NULL; term_writeln("[STAGE2] snp-init FAIL"); goto http_try; }
         }
         term_write("nic");
         if (snp->Mode->MediaPresent) term_write("(UP)");
         else term_write("(DOWN)");
     } else {
-        term_write("no-nic");
+        term_writeln("[STAGE2] no-nic");
         /* Retry: connect absolutely everything, then try SNP again */
         {
             ((efi_bs_cc_t)g_BS->ConnectController)(NULL, NULL, NULL, TRUE);
@@ -316,17 +324,18 @@ int net_init() {
             }
         }
         if (g_snp) {
-            if (g_snp->Mode->State == EfiSimpleNetworkStopped) {
-                status = g_snp->Start(g_snp);
-                if (EFI_ERROR(status)) { term_writeln(" snp-start FAIL"); goto http_try; }
-            }
-            if (g_snp->Mode->State == EfiSimpleNetworkStarted) {
-                status = g_snp->Initialize(g_snp, 0, 0);
-                if (EFI_ERROR(status)) { term_writeln(" snp-init FAIL"); goto http_try; }
-            }
-            term_write("(retry)nic");
+        if (g_snp->Mode->State == EfiSimpleNetworkStopped) {
+            status = g_snp->Start(g_snp);
+            if (EFI_ERROR(status)) { g_snp = NULL; term_writeln("[STAGE2] snp-start FAIL"); goto http_try; }
+        }
+        if (g_snp && g_snp->Mode->State == EfiSimpleNetworkStarted) {
+            status = g_snp->Initialize(g_snp, 0, 0);
+            if (EFI_ERROR(status)) { g_snp = NULL; term_writeln("[STAGE2] snp-init FAIL"); goto http_try; }
+        }
+            term_write(" nic(retry)");
             if (g_snp->Mode->MediaPresent) term_write("(UP)");
             else term_write("(DOWN)");
+            term_writeln("");
         } else {
             /* Scan PCI for network controllers */
             int found_nic = 0;
@@ -377,10 +386,30 @@ int net_init() {
                     }
                 }
             }
+            /* Early RTL8168 probe if reconnect didn't help */
+            if (!g_snp && found_nic) {
+                if (rtl_probe() == 0) {
+                    term_write(" [STAGE7] rtl8168");
+                    lumie_memcpy(g_our_mac, g_rtl_mac, 6);
+                    if (g_local_ip[0] == 0) {
+                        g_local_ip[0] = 192; g_local_ip[1] = 168;
+                        g_local_ip[2] = 1; g_local_ip[3] = 100;
+                        g_gateway_ip[0] = 192; g_gateway_ip[1] = 168;
+                        g_gateway_ip[2] = 1; g_gateway_ip[3] = 1;
+                        g_dns_ip[0] = 8; g_dns_ip[1] = 8;
+                        g_dns_ip[2] = 8; g_dns_ip[3] = 8;
+                        term_write(" static:192.168.1.100");
+                    }
+                    g_use_raw_http = 1;
+                    g_net_initialized = 1;
+                    term_writeln("");
+                    return 0;
+                }
+            }
         }
     }
 
-    /* 2 – DHCP */
+    /* [3/7] DHCP */
     status = ((efi_bs_locate_protocol)g_BS->LocateProtocol)(&ip4cfg2_guid, NULL, (void**)&ip4cfg2);
     if (!EFI_ERROR(status) && ip4cfg2) {
         term_write(" dhcp");
@@ -417,24 +446,26 @@ int net_init() {
                     term_write(" ip="); print_ip(g_local_ip);
                     term_write(" gw="); print_ip(g_gateway_ip);
                 } else {
-                    term_write(" no-ip");
+                    term_write(" [STAGE3] no-ip");
                 }
             } else {
-                term_write(" timeout");
+                term_write(" [STAGE3] DHCP-timeout");
             }
         } else {
-            term_write(" no-dhcp");
+            term_write(" [STAGE3] no-dhcp");
         }
     }
 
 http_try:
-    /* 3 – HTTP Protocol (UEFI 2.5+) */
+    /* [4/7] HTTP Protocol (UEFI 2.5+) */
     status = ((efi_bs_locate_protocol)g_BS->LocateProtocol)(&http_guid, NULL, (void**)&g_http);
     if (EFI_ERROR(status) || !g_http) {
-        term_write(" http:unavail");
-        /* Fallback A: raw TCP/HTTP via SNP */
+        term_set_fg(LUMIE_YELLOW);
+        term_writeln(" [STAGE4] http:unavail — fallback to raw TCP...");
+        term_set_fg(LUMIE_LIGHTGRAY);
+        /* Fallback [5/7]: raw TCP/HTTP via SNP */
         if (g_snp && g_snp->Mode->MediaPresent && g_local_ip[0] != 0 && g_gateway_ip[0] != 0) {
-            term_write(" raw-tcp");
+            term_write(" [STAGE5] raw-tcp");
             g_use_raw_http = 1;
             /* Try to locate TLS protocol for HTTPS support */
             {
@@ -448,13 +479,13 @@ http_try:
             term_writeln("");
             return 0;
         }
-        /* Fallback B: raw TCP via SNP with static IP (DHCP failed) */
+        /* Fallback [6/7]: raw TCP via SNP with static IP (DHCP failed) */
         if (g_snp && g_snp->Mode->MediaPresent && g_local_ip[0] == 0) {
-            term_write(" raw-tcp static");
+            term_write(" [STAGE6] raw-tcp static");
             g_local_ip[0] = 192; g_local_ip[1] = 168;
-            g_local_ip[2] = 1;   g_local_ip[3] = 100;
+            g_local_ip[2] = 1; g_local_ip[3] = 100;
             g_gateway_ip[0] = 192; g_gateway_ip[1] = 168;
-            g_gateway_ip[2] = 1;   g_gateway_ip[3] = 1;
+            g_gateway_ip[2] = 1; g_gateway_ip[3] = 1;
             g_dns_ip[0] = 8; g_dns_ip[1] = 8;
             g_dns_ip[2] = 8; g_dns_ip[3] = 8;
             g_use_raw_http = 1;
@@ -468,15 +499,15 @@ http_try:
             term_writeln("");
             return 0;
         }
-        /* Fallback C: direct RTL8168 driver (no SNP needed) */
-        if (!g_snp && rtl_probe() == 0) {
-            term_write(" rtl8168");
+        /* Fallback [7/7]: direct RTL8168 driver (no SNP needed) */
+        if ((!g_snp || !g_snp->Mode->MediaPresent) && rtl_probe() == 0) {
+            term_write(" [STAGE7] rtl8168");
             lumie_memcpy(g_our_mac, g_rtl_mac, 6);
             if (g_local_ip[0] == 0) {
                 g_local_ip[0] = 192; g_local_ip[1] = 168;
-                g_local_ip[2] = 1;   g_local_ip[3] = 100;
+                g_local_ip[2] = 1; g_local_ip[3] = 100;
                 g_gateway_ip[0] = 192; g_gateway_ip[1] = 168;
-                g_gateway_ip[2] = 1;   g_gateway_ip[3] = 1;
+                g_gateway_ip[2] = 1; g_gateway_ip[3] = 1;
                 g_dns_ip[0] = 8; g_dns_ip[1] = 8;
                 g_dns_ip[2] = 8; g_dns_ip[3] = 8;
                 term_write(" static:192.168.1.100");
@@ -490,7 +521,9 @@ http_try:
         return -1;
     }
 
-    term_write(" http:OK");
+    term_set_fg(LUMIE_GREEN);
+    term_write(" [STAGE4] http:OK");
+    term_set_fg(LUMIE_LIGHTGRAY);
     tls_init();
     term_writeln("");
     g_net_initialized = 1;
@@ -518,11 +551,11 @@ static u16 net_checksum(const void *buf, int len, u32 sum) {
 
 /* Ethernet types (already in network byte order) */
 #define ETH_ARP 0x0608
-#define ETH_IP  0x0008
+#define ETH_IP 0x0008
 
 /* ARP operations */
 #define ARP_REQUEST 0x0100
-#define ARP_REPLY   0x0200
+#define ARP_REPLY 0x0200
 
 /* TCP flags */
 #define TCP_FIN 0x01
@@ -539,7 +572,7 @@ static u32 ip4(const u8 *ip) {
 /* Ethernet broadcast address */
 static const u8 g_eth_broadcast[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
-/* ------------------- Raw frame I/O ------------------- */
+/* --- Raw frame I/O ------------------- */
 static int raw_send(const void *buf, u32 len) {
     if (g_rtl_ready) return rtl_send(buf, len);
     if (!g_snp) return -1;
@@ -575,9 +608,9 @@ static int raw_recv(void *buf, u64 *len, u64 timeout_us) {
     return -1;
 }
 
-/* ------------------- ARP ------------------- */
+/* --- ARP ------------------- */
 static int arp_cache_valid = 0;
-static u8  arp_cache_mac[6];
+static u8 arp_cache_mac[6];
 
 static int arp_resolve(u32 target_ip, u8 *mac) {
     if (arp_cache_valid) { lumie_memcpy(mac, arp_cache_mac, 6); return 0; }
@@ -585,25 +618,27 @@ static int arp_resolve(u32 target_ip, u8 *mac) {
     u8 pkt[64];
     lumie_memset(pkt, 0, sizeof(pkt));
     /* Ethernet */
-    lumie_memcpy(pkt, g_eth_broadcast, 6);                       /* dst = broadcast */
-    lumie_memcpy(pkt + 6, g_our_mac, 6);                           /* src = our MAC */
-    *(u16*)(pkt + 12) = ETH_ARP;                                   /* ethertype */
+    lumie_memcpy(pkt, g_eth_broadcast, 6); /* dst = broadcast */
+    lumie_memcpy(pkt + 6, g_our_mac, 6); /* src = our MAC */
+    *(u16*)(pkt + 12) = ETH_ARP; /* ethertype */
     /* ARP request */
-    *(u16*)(pkt + 14) = net_swap16(1);    /* htype: Ethernet */
+    *(u16*)(pkt + 14) = net_swap16(1); /* htype: Ethernet */
     *(u16*)(pkt + 16) = net_swap16(0x0800);/* ptype: IPv4 */
-    *(pkt + 18) = 6;                       /* hlen */
-    *(pkt + 19) = 4;                       /* plen */
-    *(u16*)(pkt + 20) = ARP_REQUEST;       /* operation */
-    lumie_memcpy(pkt + 22, g_our_mac, 6);  /* sender HA */
-    *(u32*)(pkt + 28) = ip4(g_local_ip);   /* sender IP */
-    lumie_memset(pkt + 32, 0, 6);          /* target HA */
-    *(u32*)(pkt + 38) = target_ip;         /* target IP */
+    *(pkt + 18) = 6; /* hlen */
+    *(pkt + 19) = 4; /* plen */
+    *(u16*)(pkt + 20) = ARP_REQUEST; /* operation */
+    lumie_memcpy(pkt + 22, g_our_mac, 6); /* sender HA */
+    *(u32*)(pkt + 28) = ip4(g_local_ip); /* sender IP */
+    lumie_memset(pkt + 32, 0, 6); /* target HA */
+    *(u32*)(pkt + 38) = target_ip; /* target IP */
 
     if (raw_send(pkt, 42) < 0) return -1;
 
+    u8 *rbuf = NULL;
+    if (((efi_bs_allocate_pool)g_BS->AllocatePool)(EFI_BOOT_SERVICES_DATA, 1514, (void**)&rbuf) != 0 || !rbuf) return -1;
+
     for (int i = 0; i < 500; i++) {
         u64 rlen = 1514;
-        u8 rbuf[1514];
         if (raw_recv(rbuf, &rlen, 10000) == 0 && rlen >= 42) {
             u16 et = *(u16*)(rbuf + 12);
             u16 op = *(u16*)(rbuf + 20);
@@ -613,30 +648,41 @@ static int arp_resolve(u32 target_ip, u8 *mac) {
                 lumie_memcpy(mac, sha, 6);
                 lumie_memcpy(arp_cache_mac, mac, 6);
                 arp_cache_valid = 1;
+                ((efi_bs_free_pool)g_BS->FreePool)(rbuf);
                 return 0;
             }
         }
     }
+    ((efi_bs_free_pool)g_BS->FreePool)(rbuf);
     return -1;
 }
 
-/* ------------------- TCP (minimal, single connection) ------------------- */
+/* --- TCP (minimal, single connection) ------------------- */
 /* TCP pseudo-header */
 typedef struct { u32 saddr; u32 daddr; u8 zero; u8 proto; u16 len; } __attribute__((packed)) tcp_ph_t;
 
+/* FIX: IP identification field now uses a proper counter instead of fixed value.
+ * This ensures unique identification for each IP packet, which is required
+ * for proper IP fragmentation support. */
+static u16 get_next_ip_id(void) {
+    if (g_ip_id_counter == 0) g_ip_id_counter = 1;
+    return g_ip_id_counter++;
+}
+
 /* Send a TCP segment via gateway */
 static int tcp_send_seg(u32 dst_ip, u16 sport, u16 dport, u32 seq, u32 ack,
-                        u8 flags, const void *data, u16 dlen, u8 *out_mac) {
-    u8 buf[1514];
+    u8 flags, const void *data, u16 dlen, u8 *out_mac) {
+    u8 *buf = NULL;
+    if (((efi_bs_allocate_pool)g_BS->AllocatePool)(EFI_BOOT_SERVICES_DATA, 1514, (void**)&buf) != 0 || !buf) return -1;
     u8 gw_mac[6];
     u8 *eth = buf;
-    u8 *ip  = buf + 14;
+    u8 *ip = buf + 14;
     u8 *tcp = buf + 14 + 20;
     u8 *pay = tcp + 20;
     int total = 14 + 20 + 20 + dlen;
-    if (total > 1514) return -1;
+    if (total > 1514) { ((efi_bs_free_pool)g_BS->FreePool)(buf); return -1; }
 
-    if (arp_resolve(ip4(g_gateway_ip), gw_mac) < 0) return -1;
+    if (arp_resolve(ip4(g_gateway_ip), gw_mac) < 0) { ((efi_bs_free_pool)g_BS->FreePool)(buf); return -1; }
     if (out_mac) lumie_memcpy(out_mac, gw_mac, 6);
 
     /* Ethernet */
@@ -648,7 +694,10 @@ static int tcp_send_seg(u32 dst_ip, u16 sport, u16 dport, u32 seq, u32 ack,
     lumie_memset(ip, 0, 20);
     ip[0] = 0x45;
     *(u16*)(ip + 2) = net_swap16(20 + 20 + dlen);
-    *(u16*)(ip + 4) = net_swap16(1);
+    
+    /* FIX: Use incrementing IP identification for proper fragmentation support */
+    *(u16*)(ip + 4) = net_swap16(get_next_ip_id()); /* identification */
+    
     ip[8] = 64;
     ip[9] = 6;
     *(u32*)(ip + 12) = ip4(g_local_ip);
@@ -667,31 +716,39 @@ static int tcp_send_seg(u32 dst_ip, u16 sport, u16 dport, u32 seq, u32 ack,
 
     /* TCP checksum */
     {
-        u8 csum_buf[1520];
-        tcp_ph_t ph;
-        ph.saddr = *(u32*)(ip + 12);
-        ph.daddr = *(u32*)(ip + 16);
-        ph.zero = 0;
-        ph.proto = 6;
-        ph.len = net_swap16(20 + dlen);
-        lumie_memcpy(csum_buf, &ph, sizeof(ph));
-        lumie_memcpy(csum_buf + sizeof(ph), tcp, 20 + dlen);
-        *(u16*)(tcp + 16) = net_checksum(csum_buf, sizeof(ph) + 20 + dlen, 0);
+        u8 *csum_buf = NULL;
+        if (((efi_bs_allocate_pool)g_BS->AllocatePool)(EFI_BOOT_SERVICES_DATA, 1520, (void**)&csum_buf) == 0 && csum_buf) {
+            tcp_ph_t ph;
+            ph.saddr = *(u32*)(ip + 12);
+            ph.daddr = *(u32*)(ip + 16);
+            ph.zero = 0;
+            ph.proto = 6;
+            ph.len = net_swap16(20 + dlen);
+            lumie_memcpy(csum_buf, &ph, sizeof(ph));
+            lumie_memcpy(csum_buf + sizeof(ph), tcp, 20 + dlen);
+            *(u16*)(tcp + 16) = net_checksum(csum_buf, sizeof(ph) + 20 + dlen, 0);
+            ((efi_bs_free_pool)g_BS->FreePool)(csum_buf);
+        }
     }
 
     /* IP checksum */
     *(u16*)(ip + 10) = net_checksum(ip, 20, 0);
 
-    return raw_send(buf, total);
+    int ret = raw_send(buf, total);
+    ((efi_bs_free_pool)g_BS->FreePool)(buf);
+    return ret;
 }
 
 /* Receive a TCP packet matching our connection. Returns TCP payload length or <0 */
 static int tcp_recv_pkt(u32 dst_ip, u16 sport, u16 dport, u32 *seq, u32 *ack,
-                        u8 *flags, u8 *payload, u32 *paylen, u64 timeout_us) {
+    u8 *flags, u8 *payload, u32 *paylen, u64 timeout_us) {
+    u8 *rbuf = NULL;
+    if (((efi_bs_allocate_pool)g_BS->AllocatePool)(EFI_BOOT_SERVICES_DATA, 1514, (void**)&rbuf) != 0 || !rbuf) return -1;
+
     u64 elapsed = 0;
+    int ret = -1;
     while (elapsed < timeout_us) {
         u64 rlen = 1514;
-        u8 rbuf[1514];
         if (raw_recv(rbuf, &rlen, 10000) < 0) { elapsed += 10000; continue; }
         if (rlen < 14 + 20 + 20) { elapsed += 10000; continue; }
 
@@ -715,7 +772,7 @@ static int tcp_recv_pkt(u32 dst_ip, u16 sport, u16 dport, u32 *seq, u32 *ack,
         u32 pkt_seq = net_swap32(*(u32*)(tcp + 4));
         u32 pkt_ack = net_swap32(*(u32*)(tcp + 8));
         u16 doff_flags = net_swap16(*(u16*)(tcp + 12));
-        u8  pkt_flags = doff_flags & 0xFF;
+        u8 pkt_flags = doff_flags & 0xFF;
         int tcp_hlen = ((doff_flags >> 12) & 0x0F) * 4;
 
         /* Fill output */
@@ -732,14 +789,16 @@ static int tcp_recv_pkt(u32 dst_ip, u16 sport, u16 dport, u32 *seq, u32 *ack,
         } else if (paylen) {
             *paylen = 0;
         }
-        return data_len;
+        ret = data_len;
+        break;
     }
-    return -1;
+    ((efi_bs_free_pool)g_BS->FreePool)(rbuf);
+    return ret;
 }
 
 /* TCP connect: SYN → SYN-ACK → ACK. Returns 0 on success. */
 static int tcp_connect(u32 dst_ip, u16 sport, u16 dport, u32 *seq, u32 *ack) {
-    *seq = 0x12345678;       /* client ISN */
+    *seq = 0x12345678; /* client ISN */
     *ack = 0;
 
     term_write(" TCP:SYN");
@@ -754,8 +813,8 @@ static int tcp_connect(u32 dst_ip, u16 sport, u16 dport, u32 *seq, u32 *ack) {
     if (!(sa_flags & TCP_SYN) || !(sa_flags & TCP_ACK))
         return -1;
 
-    *seq = sa_ack;           /* client ISN + 1 */
-    *ack = sa_seq + 1;       /* server ISN + 1 */
+    *seq = sa_ack; /* client ISN + 1 */
+    *ack = sa_seq + 1; /* server ISN + 1 */
 
     term_write(" SYN-ACK");
     if (tcp_send_seg(dst_ip, sport, dport, *seq, *ack, TCP_ACK, NULL, 0, NULL) < 0)
@@ -767,7 +826,7 @@ static int tcp_connect(u32 dst_ip, u16 sport, u16 dport, u32 *seq, u32 *ack) {
 
 /* TCP send data (with PSH) */
 static int tcp_send_data(u32 dst_ip, u16 sport, u16 dport, u32 *seq, u32 ack,
-                         const void *data, u16 dlen) {
+    const void *data, u16 dlen) {
     if (tcp_send_seg(dst_ip, sport, dport, *seq, ack, TCP_PSH | TCP_ACK, data, dlen, NULL) < 0)
         return -1;
     *seq += dlen;
@@ -776,9 +835,9 @@ static int tcp_send_data(u32 dst_ip, u16 sport, u16 dport, u32 *seq, u32 ack,
 
 /* TCP receive data. Returns payload length or <0 on error/timeout. */
 static int tcp_recv_data(u32 dst_ip, u16 sport, u16 dport, u32 *seq, u32 *ack,
-                         u8 *buf, u32 *bufsz, u64 timeout) {
+    u8 *buf, u32 *bufsz, u64 timeout) {
     u32 pkt_seq = 0;
-    u8  flags = 0;
+    u8 flags = 0;
     u32 plen = *bufsz;
     int ret = tcp_recv_pkt(dst_ip, sport, dport, &pkt_seq, NULL, &flags, buf, &plen, timeout);
     if (ret < 0) return -1;
@@ -836,23 +895,24 @@ static int tcp_close(u32 dst_ip, u16 sport, u16 dport, u32 *seq, u32 *ack) {
     return 0;
 }
 
-/* ------------------- DNS (minimal UDP) ------------------- */
+/* --- DNS (minimal UDP) ------------------- */
 /* Build a DNS A-record query for hostname, send via gateway.
-   Returns resolved IP in network byte order, or 0 on failure. */
+ Returns resolved IP in network byte order, or 0 on failure. */
 static u32 dns_resolve(const char *hostname) {
     if (!g_dns_ip[0]) return 0;
 
     u32 dns_ip = ip4(g_dns_ip);
     u16 sport = 0xC000 + (u16)(g_local_ip[3] << 8 | g_local_ip[2]); /* ephemeral-ish */
 
-    u8 pkt[1514];
+    u8 *pkt = NULL;
+    if (((efi_bs_allocate_pool)g_BS->AllocatePool)(EFI_BOOT_SERVICES_DATA, 1514, (void**)&pkt) != 0 || !pkt) return 0;
     u8 *eth = pkt;
-    u8 *ip  = pkt + 14;
+    u8 *ip = pkt + 14;
     u8 *udp = pkt + 14 + 20;
     u8 *dns = pkt + 14 + 20 + 8;
     u8 gw_mac[6];
 
-    if (arp_resolve(ip4(g_gateway_ip), gw_mac) < 0) return 0;
+    if (arp_resolve(ip4(g_gateway_ip), gw_mac) < 0) { ((efi_bs_free_pool)g_BS->FreePool)(pkt); return 0; }
 
     /* Build DNS query */
     u16 txid = net_swap16(0x1234);
@@ -895,23 +955,28 @@ static u32 dns_resolve(const char *hostname) {
 
     /* UDP checksum */
     {
-        u8 csum_buf[1520];
+        u8 *csum_buf = NULL;
         u32 buflen = 12 + 8 + dns_len;
-        /* pseudo-header */
-        *(u32*)(csum_buf + 0) = ip4(g_local_ip);
-        *(u32*)(csum_buf + 4) = dns_ip;
-        *(csum_buf + 8) = 0;
-        *(csum_buf + 9) = 17;
-        *(u16*)(csum_buf + 10) = net_swap16(8 + dns_len);
-        lumie_memcpy(csum_buf + 12, udp, 8 + dns_len);
-        *(u16*)(udp + 6) = net_checksum(csum_buf, buflen, 0);
+        if (((efi_bs_allocate_pool)g_BS->AllocatePool)(EFI_BOOT_SERVICES_DATA, 1520, (void**)&csum_buf) == 0 && csum_buf) {
+            *(u32*)(csum_buf + 0) = ip4(g_local_ip);
+            *(u32*)(csum_buf + 4) = dns_ip;
+            *(csum_buf + 8) = 0;
+            *(csum_buf + 9) = 17;
+            *(u16*)(csum_buf + 10) = net_swap16(8 + dns_len);
+            lumie_memcpy(csum_buf + 12, udp, 8 + dns_len);
+            *(u16*)(udp + 6) = net_checksum(csum_buf, buflen, 0);
+            ((efi_bs_free_pool)g_BS->FreePool)(csum_buf);
+        }
     }
 
     /* IP header */
     lumie_memset(ip, 0, 20);
     ip[0] = 0x45;
     *(u16*)(ip + 2) = net_swap16(20 + 8 + dns_len);
-    *(u16*)(ip + 4) = net_swap16(2);
+    
+    /* FIX: Use proper IP identification for DNS packets too */
+    *(u16*)(ip + 4) = net_swap16(get_next_ip_id()); /* identification */
+    
     ip[8] = 64;
     ip[9] = 17;
     *(u32*)(ip + 12) = ip4(g_local_ip);
@@ -924,12 +989,14 @@ static u32 dns_resolve(const char *hostname) {
     *(u16*)(eth + 12) = ETH_IP;
 
     int total = 14 + 20 + 8 + dns_len;
-    if (raw_send(pkt, total) < 0) return 0;
+    if (raw_send(pkt, total) < 0) { ((efi_bs_free_pool)g_BS->FreePool)(pkt); return 0; }
+    ((efi_bs_free_pool)g_BS->FreePool)(pkt);
 
     /* Receive DNS response */
+    u8 *rbuf = NULL;
+    if (((efi_bs_allocate_pool)g_BS->AllocatePool)(EFI_BOOT_SERVICES_DATA, 1514, (void**)&rbuf) != 0 || !rbuf) return 0;
     for (int i = 0; i < 200; i++) {
         u64 rlen = 1514;
-        u8 rbuf[1514];
         if (raw_recv(rbuf, &rlen, 10000) < 0) continue;
         if (rlen < 14 + 20 + 8 + 16) continue;
         if (*(u16*)(rbuf + 12) != ETH_IP) continue;
@@ -971,23 +1038,25 @@ static u32 dns_resolve(const char *hostname) {
                 lumie_itoa(b[1], dbuf, 10); term_write(dbuf); term_write(".");
                 lumie_itoa(b[2], dbuf, 10); term_write(dbuf); term_write(".");
                 lumie_itoa(b[3], dbuf, 10); term_write(dbuf);
+                ((efi_bs_free_pool)g_BS->FreePool)(rbuf);
                 return resolved;
             }
             rdpos += rdlen;
         }
         break;
     }
+    ((efi_bs_free_pool)g_BS->FreePool)(rbuf);
     return 0;
 }
 
-/* ------------------- HTTP GET over raw TCP ------------------- */
+/* --- HTTP GET over raw TCP ------------------- */
 static int http_raw_get(const char *hostname, u16 port, const char *path,
-                        void **out_buf, u64 *out_size, int use_tls) {
+    void **out_buf, u64 *out_size, int use_tls) {
     u32 dst_ip;
     term_write("HTTP:");
     term_write(hostname);
 
-    /* Resolve hostname */
+    /* [DNS] Resolve hostname */
     {
         /* Try parsing as IP first */
         u8 ipb[4];
@@ -1008,7 +1077,7 @@ static int http_raw_get(const char *hostname, u16 port, const char *path,
         } else {
             dst_ip = dns_resolve(hostname);
             if (!dst_ip) {
-                term_writeln(" DNS:FAIL");
+                term_writeln(" [STAGE-DNS] FAIL");
                 return -1;
             }
         }
@@ -1017,13 +1086,13 @@ static int http_raw_get(const char *hostname, u16 port, const char *path,
     u16 sport = 0xB000 + (u16)(g_local_ip[3] | (g_local_ip[2] << 8));
     u32 seq = 0, ack = 0;
 
-    /* TCP connect */
+    /* [TCP] Connect */
     if (tcp_connect(dst_ip, sport, port, &seq, &ack) < 0) {
-        term_writeln(" TCP:FAIL");
+        term_writeln(" [STAGE-TCP] FAIL");
         return -1;
     }
 
-    /* TLS handshake (if HTTPS) */
+    /* [TLS] Handshake (if HTTPS) */
     if (use_tls) {
         g_tls_dip = dst_ip;
         g_tls_sp = sport;
@@ -1034,14 +1103,14 @@ static int http_raw_get(const char *hostname, u16 port, const char *path,
         s.send = tls_tcp_snd;
         s.recv = tls_tcp_rcv;
         if (tls_connect(&s, hostname, port) < 0) {
-            term_writeln(" TLS:FAIL");
+            term_writeln(" [STAGE-TLS] FAIL");
             tcp_close(dst_ip, sport, port, &seq, &ack);
             return -1;
         }
         term_write(" HTTPS");
     }
 
-    /* Build HTTP GET request */
+    /* [HTTP] Build GET request */
     char req[2048];
     int reqlen = lumie_snprintf(req, sizeof(req),
         "GET %s HTTP/1.1\r\n"
@@ -1051,7 +1120,7 @@ static int http_raw_get(const char *hostname, u16 port, const char *path,
         "\r\n", path, hostname);
     term_write(" REQ");
 
-    /* Send request */
+    /* [HTTP] Send request */
     int send_ok;
     if (use_tls) {
         send_ok = tls_send(NULL, req, (u16)reqlen);
@@ -1059,18 +1128,23 @@ static int http_raw_get(const char *hostname, u16 port, const char *path,
         send_ok = tcp_send_data(dst_ip, sport, port, &seq, ack, req, (u16)reqlen);
     }
     if (send_ok < 0) {
-        term_writeln(" SEND:FAIL");
+        term_writeln(" [STAGE-SEND] FAIL");
         return -1;
     }
 
-    /* Receive HTTP response */
-    u8 buf[1514];
+    /* [HTTP] Receive response */
+    u8 *buf = NULL;
     u8 *resp_buf = NULL;
     u32 resp_buf_sz = 65536;
     u32 resp_pos = 0;
+    if (((efi_bs_allocate_pool)g_BS->AllocatePool)(EFI_BOOT_SERVICES_DATA, 1514, (void**)&buf) != 0 || !buf) {
+        term_writeln(" [STAGE-RECV] NOMEM");
+        return -1;
+    }
     /* Allocate response buffer from pool instead of stack (avoids chkstk) */
     if (((efi_bs_allocate_pool)g_BS->AllocatePool)(4, resp_buf_sz, (void**)&resp_buf) != 0) {
-        term_writeln(" NOMEM");
+        ((efi_bs_free_pool)g_BS->FreePool)(buf);
+        term_writeln(" [STAGE-RECV] NOMEM");
         return -1;
     }
     int http_ok = 0;
@@ -1079,7 +1153,7 @@ static int http_raw_get(const char *hostname, u16 port, const char *path,
 
     term_write(" RECV");
     for (int i = 0; i < 300; i++) {
-        u32 plen = sizeof(buf);
+        u32 plen = 1514;
         int ret;
         if (use_tls) ret = tls_recv(NULL, buf, &plen, 2000000);
         else ret = tcp_recv_data(dst_ip, sport, port, &seq, &ack, buf, &plen, 2000000);
@@ -1179,7 +1253,7 @@ static int http_raw_get(const char *hostname, u16 port, const char *path,
                         if (in_pos < resp_pos && resp_buf[in_pos] == '\n') in_pos++;
                         /* Copy chunk data */
                         u32 copy = chunk_sz;
-                        if (out_pos + copy > resp_buf_sz) copy = resp_buf_sz - out_pos;
+                        if (chunk_sz > resp_buf_sz || out_pos > resp_buf_sz - chunk_sz) copy = resp_buf_sz - out_pos;
                         lumie_memcpy(out + out_pos, resp_buf + in_pos, copy);
                         out_pos += copy;
                         in_pos += chunk_sz;
@@ -1189,10 +1263,12 @@ static int http_raw_get(const char *hostname, u16 port, const char *path,
                     }
                     final_size = out_pos;
                     /* Allocate and copy */
+                    if (final_size == 0) final_size = 1;
                     if (((efi_bs_allocate_pool)g_BS->AllocatePool)(4, final_size, &final_buf) != 0)
                         goto cleanup_http;
                     lumie_memcpy(final_buf, out, final_size);
                 } else {
+                    if (final_size == 0) final_size = 1;
                     if (((efi_bs_allocate_pool)g_BS->AllocatePool)(4, final_size, &final_buf) != 0)
                         goto cleanup_http;
                     lumie_memcpy(final_buf, resp_buf + body_start, final_size);
@@ -1206,6 +1282,7 @@ static int http_raw_get(const char *hostname, u16 port, const char *path,
                 if (use_tls) tls_close(NULL);
                 tcp_close(dst_ip, sport, port, &seq, &ack);
                 term_writeln("");
+                ((efi_bs_free_pool)g_BS->FreePool)(buf);
                 ((efi_bs_free_pool)g_BS->FreePool)(resp_buf);
                 return 0;
             }
@@ -1227,7 +1304,9 @@ static int http_raw_get(const char *hostname, u16 port, const char *path,
                 lumie_memcpy(final_buf, resp_buf + body_start, body_len);
                 *out_buf = final_buf;
                 *out_size = body_len;
+                ((efi_bs_free_pool)g_BS->FreePool)(buf);
                 ((efi_bs_free_pool)g_BS->FreePool)(resp_buf);
+                term_writeln(" PARTIAL");
                 return 0;
             }
         }
@@ -1236,6 +1315,7 @@ static int http_raw_get(const char *hostname, u16 port, const char *path,
     term_writeln(" FAIL");
 
 cleanup_http:
+    if (buf) ((efi_bs_free_pool)g_BS->FreePool)(buf);
     if (resp_buf) ((efi_bs_free_pool)g_BS->FreePool)(resp_buf);
     return -1;
 }
@@ -1306,8 +1386,8 @@ int net_download(const char *url_str, void **out_buf, u64 *out_size) {
     efi_status status;
     char16 *url_wide = NULL;
     static char16 host_hdr_name[] = L"Host";
-    static char16 ua_hdr_name[]   = L"User-Agent";
-    static char16 ua_hdr_val[]    = L"LumieOS/0.1";
+    static char16 ua_hdr_name[] = L"User-Agent";
+    static char16 ua_hdr_val[] = L"LumieOS/0.1";
     char16 host_hdr_val[512];
     efi_http_header req_headers[4];
     efi_http_request_data req_data;
@@ -1315,8 +1395,8 @@ int net_download(const char *url_str, void **out_buf, u64 *out_size) {
     efi_http_response_data resp_data;
     efi_http_token token;
     efi_event event = NULL;
-    u8  *body_buf = NULL;
-    u64  body_size = 0;
+    u8 *body_buf = NULL;
+    u64 body_size = 0;
 
     if (((efi_bs_allocate_pool)g_BS->AllocatePool)(4, 2048 * sizeof(char16), (void**)&url_wide) != 0)
         goto cleanup;
@@ -1341,41 +1421,41 @@ int net_download(const char *url_str, void **out_buf, u64 *out_size) {
     status = ((efi_bs_create_event)g_BS->CreateEvent)(0, 0, NULL, NULL, &event);
     if (EFI_ERROR(status)) return -1;
 
-    /* ---- Build Request ---- */
-    req_headers[0].FieldName  = host_hdr_name;
+    /* --- Build Request ---- */
+    req_headers[0].FieldName = host_hdr_name;
     req_headers[0].FieldValue = host_hdr_val;
-    req_headers[1].FieldName  = ua_hdr_name;
+    req_headers[1].FieldName = ua_hdr_name;
     req_headers[1].FieldValue = ua_hdr_val;
-    req_headers[2].FieldName  = NULL;
+    req_headers[2].FieldName = NULL;
     req_headers[2].FieldValue = NULL;
 
     req_data.Method = EfiHttpMethodGet;
-    req_data.Url    = url_wide;
+    req_data.Url = url_wide;
     req_data.RequestMessage = NULL;
 
     req_msg.IsRequest = 1;
-    req_msg.Data.Request  = &req_data;
-    req_msg.Headers       = req_headers;
-    req_msg.HeaderCount   = 2;
-    req_msg.BodyLength    = 0;
-    req_msg.Body          = NULL;
+    req_msg.Data.Request = &req_data;
+    req_msg.Headers = req_headers;
+    req_msg.HeaderCount = 2;
+    req_msg.BodyLength = 0;
+    req_msg.Body = NULL;
 
-    token.Event   = event;
-    token.Status  = EFI_SUCCESS;
+    token.Event = event;
+    token.Status = EFI_SUCCESS;
     token.Message = &req_msg;
 
-    /* Send GET */
+    /* [HTTP] Send GET request */
     status = g_http->Request(g_http, &token);
-    if (EFI_ERROR(status)) goto cleanup;
+    if (EFI_ERROR(status)) { term_writeln(" [STAGE-REQ] FAIL"); goto cleanup; }
 
     { /* Wait */
         u64 idx;
         status = ((efi_bs_wait_for_event)g_BS->WaitForEvent)(1, &event, &idx);
-        if (EFI_ERROR(status)) goto cleanup;
-        if (EFI_ERROR(token.Status)) { status = token.Status; goto cleanup; }
+        if (EFI_ERROR(status)) { term_writeln(" [STAGE-REQ] WAIT-FAIL"); goto cleanup; }
+        if (EFI_ERROR(token.Status)) { status = token.Status; term_writeln(" [STAGE-REQ] TOKEN-FAIL"); goto cleanup; }
     }
 
-    /* ---- Receive Response (headers + body in one call) ---- */
+    /* [HTTP] Receive Response (headers + body in one call) */
     /* First, read response with a small header buffer to get Content-Length */
     /* We use a small initial buffer, then reallocate based on Content-Length */
 
@@ -1390,30 +1470,30 @@ int net_download(const char *url_str, void **out_buf, u64 *out_size) {
         efi_http_message resp_msg;
         resp_msg.IsRequest = 0;
         resp_msg.Data.Response = &resp_data;
-        resp_msg.Headers       = NULL;
-        resp_msg.HeaderCount   = 0;
-        resp_msg.BodyLength    = body_size;
-        resp_msg.Body          = body_buf;
+        resp_msg.Headers = NULL;
+        resp_msg.HeaderCount = 0;
+        resp_msg.BodyLength = body_size;
+        resp_msg.Body = body_buf;
 
-        token.Event   = event;
-        token.Status  = EFI_SUCCESS;
+        token.Event = event;
+        token.Status = EFI_SUCCESS;
         token.Message = &resp_msg;
 
         status = g_http->Response(g_http, &token);
-        if (EFI_ERROR(status)) goto cleanup;
+        if (EFI_ERROR(status)) { term_writeln(" [STAGE-RESP] FAIL"); goto cleanup; }
 
         { /* Wait */
             u64 idx;
             status = ((efi_bs_wait_for_event)g_BS->WaitForEvent)(1, &event, &idx);
-            if (EFI_ERROR(status)) goto cleanup;
-            if (EFI_ERROR(token.Status)) { status = token.Status; goto cleanup; }
+            if (EFI_ERROR(status)) { term_writeln(" [STAGE-RESP] WAIT-FAIL"); goto cleanup; }
+            if (EFI_ERROR(token.Status)) { status = token.Status; term_writeln(" [STAGE-RESP] TOKEN-FAIL"); goto cleanup; }
         }
 
         /* Check HTTP status */
         if (resp_data.StatusCode != 200) {
             char buf[64];
-            lumie_strcpy(buf, "HTTP ");
-            lumie_itoa(resp_data.StatusCode, buf + 5, 10);
+            lumie_strcpy(buf, "[STAGE-RESP] HTTP ");
+            lumie_itoa(resp_data.StatusCode, buf + 18, 10);
             term_writeln(buf);
             status = EFI_ERR(1);
             goto cleanup;
@@ -1437,30 +1517,30 @@ int net_download(const char *url_str, void **out_buf, u64 *out_size) {
             efi_http_message resp2;
             resp2.IsRequest = 0;
             resp2.Data.Response = &resp_data;
-            resp2.Headers       = NULL;
-            resp2.HeaderCount   = 0;
-            resp2.BodyLength    = body_size;
-            resp2.Body          = body_buf;
+            resp2.Headers = NULL;
+            resp2.HeaderCount = 0;
+            resp2.BodyLength = body_size;
+            resp2.Body = body_buf;
 
-            token.Event   = event;
-            token.Status  = EFI_SUCCESS;
+            token.Event = event;
+            token.Status = EFI_SUCCESS;
             token.Message = &resp2;
 
             status = g_http->Response(g_http, &token);
-            if (EFI_ERROR(status)) goto cleanup;
+            if (EFI_ERROR(status)) { term_writeln(" [STAGE-RESP2] FAIL"); goto cleanup; }
 
             {
                 u64 idx;
                 status = ((efi_bs_wait_for_event)g_BS->WaitForEvent)(1, &event, &idx);
-                if (EFI_ERROR(status)) goto cleanup;
-                if (EFI_ERROR(token.Status)) { status = token.Status; goto cleanup; }
+                if (EFI_ERROR(status)) { term_writeln(" [STAGE-RESP2] WAIT-FAIL"); goto cleanup; }
+                if (EFI_ERROR(token.Status)) { status = token.Status; term_writeln(" [STAGE-RESP2] TOKEN-FAIL"); goto cleanup; }
             }
 
-            *out_buf  = body_buf;
+            *out_buf = body_buf;
             *out_size = resp2.BodyLength;
         } else {
             /* Body fits in initial buffer – take ownership */
-            *out_buf  = body_buf;
+            *out_buf = body_buf;
             *out_size = resp_msg.BodyLength;
         }
 
@@ -1480,7 +1560,7 @@ int net_download(const char *url_str, void **out_buf, u64 *out_size) {
 cleanup:
     if (url_wide) ((efi_bs_free_pool)g_BS->FreePool)(url_wide);
     if (body_buf) ((efi_bs_free_pool)g_BS->FreePool)(body_buf);
-    if (event)    ((efi_bs_close_event)g_BS->CloseEvent)(event);
+    if (event) ((efi_bs_close_event)g_BS->CloseEvent)(event);
     *out_buf = NULL;
     *out_size = 0;
     return -1;
@@ -1492,8 +1572,8 @@ static int do_download_and_save(const char *src_name, const char *url) {
     term_write(" from "); term_writeln(url);
 
     void *data = NULL;
-    u64   size = 0;
-    int   ret  = net_download(url, &data, &size);
+    u64 size = 0;
+    int ret = net_download(url, &data, &size);
     if (ret < 0) {
         term_set_fg(LUMIE_LIGHTRED);
         term_writeln("Download failed");
@@ -1501,72 +1581,57 @@ static int do_download_and_save(const char *src_name, const char *url) {
         return -1;
     }
 
-    /* Save to filesystem */
-    int result = fat_write_file(src_name, data, (u32)size);
+    /* Save to current directory */
+    char save_path[256];
+    lumie_strcpy(save_path, "/");
+    int save_len = lumie_strlen(save_path);
+    if (save_len + lumie_strlen(src_name) < 256) {
+        if (save_len > 0 && save_path[save_len-1] != '/') {
+            save_path[save_len] = '/';
+            save_path[save_len+1] = 0;
+        }
+        lumie_strcat(save_path, src_name);
+    }
 
-    /* Free pool */
+    int result = fat_write_file((const char*)save_path, data, (u32)size);
+
     if (data) ((efi_bs_free_pool)g_BS->FreePool)(data);
 
     if (result == 0) {
-        char msg[128];
-        lumie_strcpy(msg, "Saved ");
-        lumie_strcat(msg, src_name);
-        char sz[32];
-        lumie_itoa((i64)size, sz, 10);
-        lumie_strcat(msg, " (");
-        lumie_strcat(msg, sz);
-        lumie_strcat(msg, " bytes)");
         term_set_fg(LUMIE_LIGHTGREEN);
-        term_writeln(msg);
-    } else {
-        term_set_fg(LUMIE_LIGHTRED);
-        term_writeln("Failed to save (read-only filesystem?)");
+        term_write("Saved: "); term_writeln(save_path);
+        term_set_fg(LUMIE_WHITE);
     }
-    term_set_fg(LUMIE_LIGHTGRAY);
     return result;
 }
 
 int net_renet_download(const char *name) {
-    if (!name || name[0] == 0) {
-        term_set_fg(LUMIE_LIGHTRED);
-        term_writeln("Usage: renet <name|url>");
-        term_set_fg(LUMIE_LIGHTCYAN);
-        term_writeln("Known names:");
+    if (!name) {
+        /* List available packages */
+        term_set_fg(LUMIE_CYAN);
+        term_writeln("Available packages:");
+        term_set_fg(LUMIE_WHITE);
         for (int i = 0; g_renet_urls[i].name[0]; i++) {
-            term_write("  "); term_writeln(g_renet_urls[i].name);
+            term_write("  ");
+            term_writeln(g_renet_urls[i].name);
         }
         term_set_fg(LUMIE_LIGHTGRAY);
-        return -1;
+        return 0;
     }
 
-    /* Direct URL */
-    if (lumie_strncmp(name, "http://", 7) == 0 || lumie_strncmp(name, "https://", 8) == 0) {
-        /* Extract filename from URL */
-        char fname[256];
-        int last = -1;
-        for (int i = 0; name[i]; i++) if (name[i] == '/') last = i;
-        if (last >= 0) lumie_strcpy(fname, name + last + 1);
-        else lumie_strcpy(fname, "downloaded.bin");
-        for (int i = 0; fname[i]; i++) { if (fname[i] == '?') { fname[i] = 0; break; } }
-        if (fname[0] == 0) lumie_strcpy(fname, "downloaded.bin");
-        return do_download_and_save(fname, name);
-    }
-
-    /* Look up in URL table */
     for (int i = 0; g_renet_urls[i].name[0]; i++) {
-        if (lumie_strcmp(name, g_renet_urls[i].name) == 0) {
-            const char *url = (g_tls_available || g_use_raw_http) ? g_renet_urls[i].https_url : g_renet_urls[i].http_url;
-            return do_download_and_save(name, url);
+        if (lumie_strcmp(g_renet_urls[i].name, name) == 0) {
+            /* Try HTTPS first, then HTTP */
+            if (do_download_and_save(g_renet_urls[i].name, g_renet_urls[i].https_url) == 0)
+                return 0;
+            if (g_renet_urls[i].http_url[0])
+                return do_download_and_save(g_renet_urls[i].name, g_renet_urls[i].http_url);
+            return -1;
         }
     }
 
     term_set_fg(LUMIE_LIGHTRED);
-    term_write("Unknown: "); term_writeln(name);
-    term_set_fg(LUMIE_LIGHTCYAN);
-    term_writeln("Known names:");
-    for (int i = 0; g_renet_urls[i].name[0]; i++) {
-        term_write("  "); term_writeln(g_renet_urls[i].name);
-    }
+    term_write("Unknown package: "); term_writeln(name);
     term_set_fg(LUMIE_LIGHTGRAY);
     return -1;
 }

@@ -10,19 +10,19 @@ static u32 pci_inl(u16 port) {
     __asm__ volatile("inl %1, %0" : "=a"(val) : "Nd"(port));
     return val;
 }
-static void pci_cfg_write(u8 bus, u8 dev, u8 func, u8 off, u32 val) {
-    u32 addr = 0x80000000u | ((u32)bus << 16) | ((u32)(dev & 0x1F) << 11) | ((u32)(func & 7) << 8) | (off & 0xFC);
-    pci_outl(0xCF8, addr);
-    pci_outl(0xCFC, val);
-}
 static u32 pci_cfg_read(u8 bus, u8 dev, u8 func, u8 off) {
     u32 addr = 0x80000000u | ((u32)bus << 16) | ((u32)(dev & 0x1F) << 11) | ((u32)(func & 7) << 8) | (off & 0xFC);
     pci_outl(0xCF8, addr);
     return pci_inl(0xCFC);
 }
+static void pci_cfg_write(u8 bus, u8 dev, u8 func, u8 off, u32 val) {
+    u32 addr = 0x80000000u | ((u32)bus << 16) | ((u32)(dev & 0x1F) << 11) | ((u32)(func & 7) << 8) | (off & 0xFC);
+    pci_outl(0xCF8, addr);
+    pci_outl(0xCFC, val);
+}
 
 /* ===== MMIO registers ===== */
-static volatile u8  *g_rtl_mmio = NULL;
+static volatile u8 *g_rtl_mmio = NULL;
 
 void rtl_write8(u32 reg, u8 val) {
     if (!g_rtl_mmio) return;
@@ -50,7 +50,6 @@ u32 rtl_read32(u32 reg) {
 }
 
 /* ===== Packet buffers and descriptor rings ===== */
-/* NOTE: These must be 256-byte aligned per RTL8168 requirement */
 static rtl_desc g_tx_ring[RTL_TX_RING_SZ] __attribute__((aligned(256)));
 static rtl_desc g_rx_ring[RTL_RX_RING_SZ] __attribute__((aligned(256)));
 static u8 g_tx_buf[RTL_TX_RING_SZ][RTL_PKT_BUF_SZ] __attribute__((aligned(16)));
@@ -58,13 +57,11 @@ static u8 g_rx_buf[RTL_RX_RING_SZ][RTL_PKT_BUF_SZ] __attribute__((aligned(16)));
 static int g_tx_cur = 0;
 static int g_rx_cur = 0;
 
-/* ===== Public state ===== */
 u8 g_rtl_mac[6];
 int g_rtl_ready = 0;
 
 #define RTL_DELAY(x) lumie_stall(x)
 
-/* Unlock / lock EEPROM */
 static void rtl_eeprom_unlock(void) {
     rtl_write8(RTL_CFG_9346, RTL_9346_UNLOCK);
     RTL_DELAY(150);
@@ -74,32 +71,56 @@ static void rtl_eeprom_lock(void) {
     RTL_DELAY(150);
 }
 
+/* ===== Get PCI BAR address ===== */
+static u32 get_pci_bar(u8 bus, u8 dev, u8 func, int bar_index) {
+    u32 bar_off = 0x10 + bar_index * 4;
+    u32 bar = pci_cfg_read(bus, dev, func, bar_off);
+    
+    if (bar == 0xFFFFFFFF || bar == 0) return 0;
+    if ((bar & 0x01) != 0) return 0;  /* I/O space */
+    
+    return bar & ~0xF;
+}
+
 /* ===== Probe for RTL8168 ===== */
 int rtl_probe(void) {
     u32 id;
     for (int bus = 0; bus < 256; bus++) {
-        u32 hdr0 = pci_cfg_read((u8)bus, 0, 0, 0);
-        if (hdr0 == 0xFFFFFFFF || hdr0 == 0) continue;
         for (int dev = 0; dev < 32; dev++) {
+            u32 hdr0 = pci_cfg_read((u8)bus, 0, 0, 0);
+            if (hdr0 == 0xFFFFFFFF) continue;
+            
             id = pci_cfg_read((u8)bus, (u8)dev, 0, 0);
             if (id == 0xFFFFFFFF || id == 0) continue;
+            
             u16 ven = id & 0xFFFF;
             u16 dev_id = id >> 16;
+            
             if (ven != RTL_VENDOR_ID) continue;
-            if (dev_id == RTL_DEVICE_8168 || dev_id == RTL_DEVICE_8411) {
-                u8 func = 0;
-                u8 mf = (pci_cfg_read((u8)bus, (u8)dev, 0, 0xC) >> 23) & 1;
-                int maxf = mf ? 8 : 1;
-                for (func = 0; func < maxf; func++) {
-                    u32 fid = (func == 0) ? id : pci_cfg_read((u8)bus, (u8)dev, func, 0);
-                    if ((fid & 0xFFFF) != RTL_VENDOR_ID) continue;
-                    u32 cr = pci_cfg_read((u8)bus, (u8)dev, func, 8);
-                    if ((cr & 0xFFFFFF) != 0x020000) continue;
-                    u32 bar2 = pci_cfg_read((u8)bus, (u8)dev, func, 0x18);
-                    if (!bar2) continue;
-                    bar2 &= ~0xF;
-                    return rtl_init((u8)bus, (u8)dev, func, bar2);
+            if (dev_id != RTL_DEVICE_8168 && dev_id != RTL_DEVICE_8411) continue;
+            
+            u8 mf = (pci_cfg_read((u8)bus, (u8)dev, 0, 0xC) >> 23) & 1;
+            int maxf = mf ? 8 : 1;
+            
+            for (u8 func = 0; func < maxf; func++) {
+                u32 fid = (func == 0) ? id : pci_cfg_read((u8)bus, (u8)dev, func, 0);
+                if ((fid & 0xFFFF) != RTL_VENDOR_ID) continue;
+                
+                u32 cr = pci_cfg_read((u8)bus, (u8)dev, func, 8);
+                if ((cr & 0xFFFFFF) != 0x020000) continue;
+                
+                /* Try BAR2 first, then BAR0 */
+                u32 bar2 = get_pci_bar((u8)bus, (u8)dev, func, 2);
+                u32 bar0 = get_pci_bar((u8)bus, (u8)dev, func, 0);
+                
+                u32 mmio_addr = bar2;
+                if (mmio_addr == 0 && bar0 != 0) {
+                    mmio_addr = bar0;
                 }
+                
+                if (!mmio_addr) continue;
+                
+                return rtl_init((u8)bus, (u8)dev, func, mmio_addr);
             }
         }
     }
@@ -117,6 +138,8 @@ int rtl_init(u8 bus, u8 dev, u8 func, u32 bar2) {
 
     /* Map MMIO */
     g_rtl_mmio = (volatile u8*)(usize)bar2;
+    
+    if (!g_rtl_mmio) return -1;
 
     /* Software reset */
     rtl_write8(RTL_CHIP_CMD, RTL_CMD_RESET);
@@ -176,6 +199,7 @@ int rtl_init(u8 bus, u8 dev, u8 func, u32 bar2) {
     rtl_write16(RTL_CPLUS_CMD, cplus);
 
     /* Set early TX threshold: transmit when 256 bytes accumulated */
+    /* FIX: Correct name from header is RTL_EARLY_TX_THRES (without H) */
     rtl_write8(RTL_EARLY_TX_THRES, 0x10);
 
     /* Set interrupt mask (none — polling only) */

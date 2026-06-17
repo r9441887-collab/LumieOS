@@ -17,9 +17,10 @@
 #define KBD_INS   0xE8
 
 void kbd_init(efi_system_table *st);
-int  kbd_getchar();
-int  kbd_kbhit();
-int  kbd_getch_noblock();
-void kbd_flush();
+void kbd_switch_to_ps2(void);
+int  kbd_getchar(void);
+int  kbd_kbhit(void);
+int  kbd_getch_noblock(void);
+void kbd_flush(void);
 
 #endif

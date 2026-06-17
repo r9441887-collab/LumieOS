@@ -1,4 +1,5 @@
 #include "lumie.h"
+#include "kernel.h"
 
 void *lumie_memset(void *ptr, int val, size_t num) {
     u8 *p = (u8*)ptr;
@@ -82,6 +83,10 @@ void lumie_itoa(i64 num, char *buf, int base) {
 
     if (num < 0 && base == 10) {
         neg = 1;
+        if (num == (-9223372036854775807LL - 1)) {
+            lumie_strcpy(buf, "-9223372036854775808");
+            return;
+        }
         num = -num;
     }
 
@@ -131,6 +136,7 @@ int lumie_snprintf(char *buf, size_t sz, const char *fmt, ...) {
     for (int i = 0; fmt[i] && pos < (int)sz - 1; i++) {
         if (fmt[i] != '%') { buf[pos++] = fmt[i]; continue; }
         i++;
+        if (!fmt[i]) break;
         switch (fmt[i]) {
             case 's': {
                 const char *s = va_arg(args, const char*);
@@ -176,6 +182,45 @@ int lumie_snprintf(char *buf, size_t sz, const char *fmt, ...) {
     va_end(args);
     buf[pos] = 0;
     return pos;
+}
+
+u32 lumie_xor32(const u8 *data, u32 len) {
+    u32 x = 0;
+    for (u32 i = 0; i < len; i++) x ^= (u32)data[i] << ((i & 3) * 8);
+    return x;
+}
+
+/* Pack buffer into .lkrn/.ldrv format (allocates via pool) */
+int lumie_pack_module(const void *data, u32 data_sz, u32 magic, u32 subtype, const char *name, u8 **out, u32 *out_sz) {
+    u32 total = LUMIE_HDR_SIZE + data_sz;
+    u8 *buf = NULL;
+    efi_status st = ((efi_bs_allocate_pool)g_BS->AllocatePool)(4, total, (void**)&buf);
+    if (EFI_ERROR(st) || !buf) return -1;
+
+    lumie_mod_header *hdr = (lumie_mod_header*)buf;
+    lumie_memset(hdr, 0, sizeof(lumie_mod_header));
+    hdr->magic = magic;
+    hdr->ver_major = 0;
+    hdr->ver_minor = 1;
+    hdr->hdr_size = LUMIE_HDR_SIZE;
+    hdr->data_size = data_sz;
+    hdr->data_off = LUMIE_HDR_SIZE;
+    hdr->subtype = subtype;
+    if (name) {
+        int nl = lumie_strlen(name);
+        if (nl > 31) nl = 31;
+        lumie_memcpy(hdr->name, name, nl);
+    }
+
+    /* Copy payload */
+    lumie_memcpy(buf + LUMIE_HDR_SIZE, data, data_sz);
+
+    /* Calculate XOR32 checksum (with checksum field = 0) */
+    hdr->checksum = lumie_xor32(buf, total);
+
+    *out = buf;
+    *out_sz = total;
+    return 0;
 }
 
 /* lumie_stall is implemented in kernel.c */

@@ -121,13 +121,18 @@ efi_status gop_init(efi_handle image_handle, efi_system_table *st) {
     status = gop->QueryMode(gop, gop->Mode->Mode, &info_size, &info);
     if (EFI_ERROR(status) || !info) {
         info = gop->Mode->Info;
+        if (!info) return EFI_ERR(1);
     }
 
     fb.base  = gop->Mode->FrameBufferBase;
     fb.size  = gop->Mode->FrameBufferSize;
     fb.width = info->HorizontalResolution;
     fb.height = info->VerticalResolution;
-    fb.pitch = info->PixelsPerScanLine * 4;
+    {
+        u64 pitch64 = (u64)info->PixelsPerScanLine * 4;
+        if (pitch64 > 0xFFFFFFFF) pitch64 = 0xFFFFFFFF;
+        fb.pitch = (u32)pitch64;
+    }
     fb.bpp = 32;
     fb.pixel_format = info->PixelFormat;
 

@@ -97,8 +97,59 @@ int  lumie_edit(const char *filename);
 void lumie_shell_run();
 
 /* ======================== SYSTEM ======================== */
+void lumie_panic(const char *msg, const char *file, int line);
+#define LUMIE_PANIC(msg) lumie_panic(msg, __FILE__, __LINE__)
 void lumie_reboot();
 void lumie_shutdown();
 void lumie_stall(u64 microseconds);
+
+/* ======================== BINARY FORMATS ========================
+ * LumieOS uses custom binary file formats for kernel and drivers.
+ *
+ * system/kernel.lkrn — Lumie KerNel (.lkrn)
+ *   Magic: "LUMN" (0x4E4D554C)
+ *   Header: 64 bytes + kernel binary data
+ *
+ * drivers/<name>.ldrv — Lumie DriVeR (.ldrv)
+ *   Magic: "LDRV" (0x5652444C)
+ *   Header: 64 bytes + driver binary data
+ *
+ * system/shell.lsh — Lumie SHell (.lsh)
+ *   Magic: "LSH\0" (0x48534C4C)
+ *   Header: 64 bytes + shell binary data
+ *
+ * Common header structure (all formats):
+ */
+#define LUMIE_MAGIC_LKRN  0x4E4D554C   /* "LUMN" */
+#define LUMIE_MAGIC_LDRV  0x5652444C   /* "LDRV" */
+#define LUMIE_MAGIC_LSH   0x48534C4C   /* "LSH\0" — Lumie SHell executable */
+#define LUMIE_HDR_SIZE    64
+
+/* Driver subtypes for .ldrv type field */
+#define LDRV_CORE     1
+#define LDRV_DISPLAY  2
+#define LDRV_INPUT    3
+#define LDRV_FILESYSTEM 4
+#define LDRV_NETWORK  5
+#define LDRV_EDITOR   6
+
+typedef struct {
+    u32  magic;          /* LUMIE_MAGIC_LKRN or LUMIE_MAGIC_LDRV */
+    u16  ver_major;      /* format version major */
+    u16  ver_minor;      /* format version minor */
+    u32  hdr_size;       /* header size in bytes (always 64) */
+    u32  data_size;      /* payload data size */
+    u32  data_off;       /* offset to payload data (always 64) */
+    u32  checksum;       /* XOR32 checksum (field = 0 during calc) */
+    u32  subtype;        /* driver subtype (for LDRV), 0 for LUMN */
+    u8   name[36];       /* null-padded name string */
+    /* total: 64 bytes */
+} lumie_mod_header;
+
+/* Shell subtypes for .lsh type field */
+#define LSH_SHELL   1
+
+u32 lumie_xor32(const u8 *data, u32 len);
+int  lumie_pack_module(const void *data, u32 data_sz, u32 magic, u32 subtype, const char *name, u8 **out, u32 *out_sz);
 
 #endif

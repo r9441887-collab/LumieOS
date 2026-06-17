@@ -195,7 +195,7 @@ static void add_hash(const u8 *d,u32 l){if(!g_tls.hsh_init){sha2_init(&g_tls.hsh
 static int sendall(const void *d,u32 l){return g_tls.s->send(d,l);}
 static int recv_at_least(u32 n,u64 t){
     u8 *tmp=NULL;if(((efi_bs_allocate_pool)g_BS->AllocatePool)(EFI_BOOT_SERVICES_DATA,4096,(void**)&tmp)!=0||!tmp)return -1;
-    while(g_tls.pos<(int)n){u32 tl=4096;if(g_tls.s->recv(tmp,&tl,t)<0){((efi_bs_free_pool)g_BS->FreePool)(tmp);return -1;}if(tl>sizeof(g_tls.buf)-g_tls.pos)tl=sizeof(g_tls.buf)-g_tls.pos;lumie_memcpy(g_tls.buf+g_tls.pos,tmp,tl);g_tls.pos+=tl;}
+    while(g_tls.pos<n){u32 tl=4096;if(g_tls.s->recv(tmp,&tl,t)<0){((efi_bs_free_pool)g_BS->FreePool)(tmp);return -1;}if(tl>sizeof(g_tls.buf)-g_tls.pos)tl=sizeof(g_tls.buf)-g_tls.pos;lumie_memcpy(g_tls.buf+g_tls.pos,tmp,tl);g_tls.pos+=tl;}
     ((efi_bs_free_pool)g_BS->FreePool)(tmp);return 0;
 }
 
@@ -209,6 +209,7 @@ static void tls_prf(const u8 *sec,int sl,const char *lab,const u8 *seed,int sdl,
 /* Encrypt plaintext into TLS application data record. Returns record in malloc'ed buf or -1. */
 static int tls_encrypt_send(const void *plain,u32 plen){
     int ret=-1;
+    if(plen>16336)return -1;
     u8 *pkt=NULL;if(((efi_bs_allocate_pool)g_BS->AllocatePool)(EFI_BOOT_SERVICES_DATA,16384,(void**)&pkt)!=0||!pkt)goto en_done;
     u8 *mh=NULL;if(((efi_bs_allocate_pool)g_BS->AllocatePool)(EFI_BOOT_SERVICES_DATA,13+16384,(void**)&mh)!=0||!mh)goto en_done;
     u8 *cipher=NULL;if(((efi_bs_allocate_pool)g_BS->AllocatePool)(EFI_BOOT_SERVICES_DATA,16384,(void**)&cipher)!=0||!cipher)goto en_done;
@@ -227,6 +228,8 @@ static int tls_encrypt_send(const void *plain,u32 plen){
     /* Record header */
     rec[0]=CT_APP;rec[1]=3;rec[2]=3;*(u16*)(rec+3)=r16(pp);
     u32 total=5+pp;lumie_memcpy(rec+5,cipher,pp);
+    /* Update IV to last ciphertext block for next record (TLS 1.2 implicit IV) */
+    lumie_memcpy(g_tls.iv, cipher + pp - 16, 16);
     g_tls.sseq++;
     ret=sendall(rec,total);
 en_done:
@@ -242,7 +245,7 @@ static int tls_decrypt_recv(u8 *buf,u32 *len,u64 to){
     u8 *plain=NULL,*mh=NULL;
     if(((efi_bs_allocate_pool)g_BS->AllocatePool)(EFI_BOOT_SERVICES_DATA,16384,(void**)&plain)!=0||!plain)return -1;
     if(((efi_bs_allocate_pool)g_BS->AllocatePool)(EFI_BOOT_SERVICES_DATA,13+16384,(void**)&mh)!=0||!mh){((efi_bs_free_pool)g_BS->FreePool)(plain);return -1;}
-    int ret=-1;
+    int ret=-1;int unknown_records=0;
     while(1){
         if(recv_at_least(HDR_SZ,to)<0)break;
         int rtype=g_tls.buf[0];int rlen=r16(*(u16*)(g_tls.buf+3));
@@ -251,7 +254,11 @@ static int tls_decrypt_recv(u8 *buf,u32 *len,u64 to){
             /* Decrypt */
             int plen=rlen;
             if(plen%16!=0||plen<16)break;
-            aes_cbc_dec(g_tls.dk,g_tls.div,g_tls.buf+HDR_SZ,plen,plain);
+            /* Capture ciphertext for next record's IV BEFORE decrypt */
+            u8 *rec_cipher = g_tls.buf + HDR_SZ;
+            aes_cbc_dec(g_tls.dk, g_tls.div, rec_cipher, plen, plain);
+            /* Update IV to received ciphertext for next record (TLS 1.2 implicit IV) */
+            lumie_memcpy(g_tls.div, rec_cipher + plen - 16, 16);
             /* Remove padding */
             int pad=plain[plen-1]+1;if(pad>plen||pad<1)break;
             int data_len=plen-pad;
@@ -275,6 +282,7 @@ static int tls_decrypt_recv(u8 *buf,u32 *len,u64 to){
             break;
         }else{
             g_tls.pos-=HDR_SZ+rlen;if(g_tls.pos>0)lumie_memmove(g_tls.buf,g_tls.buf+HDR_SZ+rlen,g_tls.pos);
+            if(++unknown_records>8)break;
         }
     }
     ((efi_bs_free_pool)g_BS->FreePool)(plain);
@@ -332,8 +340,9 @@ int tls_connect(tls_stream *stream,const char *hostname,u16 port){
      u8 cke[512];int cp2=HDR_SZ;cke[0]=CT_HS;cke[1]=3;cke[2]=3;
      cke[cp2++]=HS_CKE;cke[cp2++]=0;cke[cp2++]=0;cke[cp2++]=0;/* placeholder */
      int ln_off=cp2;cp2+=2;lumie_memcpy(cke+cp2,enc,encl);cp2+=encl;
-     *(u16*)(cke+ln_off)=r16(encl);int hlen=cp2-HDR_SZ-4;cke[1+3+1]=0;cke[1+3+2]=(u8)(hlen>>8);cke[1+3+3]=(u8)hlen;
-     *(u16*)(cke+3)=r16(hlen);add_hash(cke+HDR_SZ,4+hlen);
+     *(u16*)(cke+ln_off)=r16(encl);int hlen=cp2-HDR_SZ-4;int tls_len=cp2-HDR_SZ;
+     cke[HDR_SZ+1]=(u8)(hlen>>16);cke[HDR_SZ+2]=(u8)(hlen>>8);cke[HDR_SZ+3]=(u8)hlen;
+     *(u16*)(cke+3)=r16(tls_len);add_hash(cke+HDR_SZ,4+hlen);
      sendall(cke,cp2);}
 
     {u8 ccs[6]={CT_CCS,3,3,0,1,1};sendall(ccs,6);}term_write(" CCS");

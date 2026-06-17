@@ -7,10 +7,10 @@
 /* ===== Bit reader ===== */
 typedef struct {
     const u8 *data;
-    u32  size;
-    u32  buf;
-    int  bits;
-    u32  pos;
+    u32 size;
+    u32 buf;
+    int bits;
+    u32 pos;
 } bit_reader;
 
 static void br_init(bit_reader *br, const u8 *data, u32 size) {
@@ -22,6 +22,7 @@ static void br_init(bit_reader *br, const u8 *data, u32 size) {
 }
 
 static u32 br_read(bit_reader *br, int n) {
+    if (n > 31) n = 31;
     while (br->bits < n) {
         if (br->pos >= br->size) return 0;
         br->buf |= (u32)br->data[br->pos] << br->bits;
@@ -45,12 +46,12 @@ static void br_align(bit_reader *br) {
 typedef struct {
     u16 left, right;
     u16 symbol;
-    u8  is_leaf;
+    u8 is_leaf;
 } ht_node;
 
 typedef struct {
     ht_node n[HT_NODES];
-    int     num;
+    int num;
 } huffman_tree;
 
 static int ht_new(huffman_tree *t) {
@@ -120,9 +121,9 @@ static int ht_decode(huffman_tree *t, bit_reader *br, int root) {
 }
 
 /* ===== Length/distance tables ===== */
-static const u16 len_base[]  = {3,4,5,6,7,8,9,10,11,13,15,17,19,23,27,31,35,43,51,59,67,83,99,115,131,163,195,227,258};
+static const u16 len_base[] = {3,4,5,6,7,8,9,10,11,13,15,17,19,23,27,31,35,43,51,59,67,83,99,115,131,163,195,227,258};
 static const u16 len_extra[] = {0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0};
-static const u16 dst_base[]  = {1,2,3,4,5,7,9,13,17,25,33,49,65,97,129,193,257,385,513,769,1025,1537,2049,3073,4097,6145,8193,12289,16385,24577};
+static const u16 dst_base[] = {1,2,3,4,5,7,9,13,17,25,33,49,65,97,129,193,257,385,513,769,1025,1537,2049,3073,4097,6145,8193,12289,16385,24577};
 static const u16 dst_extra[] = {0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13};
 
 /* ===== CRC32 ===== */
@@ -145,6 +146,9 @@ static u32 crc32_calc(u32 crc, const u8 *d, u32 sz) {
 }
 
 /* ===== DEFLATE ===== */
+/* FIX: Store block was not properly aligned after reading raw bytes.
+ * After reading len bytes, we need to re-align the bit reader to byte boundary
+ * and re-populate the buffer from the correct position in the data stream. */
 static int deflate_decompress(bit_reader *br, u8 *out, u32 out_max, u32 *out_size) {
     u32 pos = 0;
     int bfinal = 0;
@@ -154,11 +158,28 @@ static int deflate_decompress(bit_reader *br, u8 *out, u32 out_max, u32 *out_siz
         int btype = (int)br_read(br, 2);
 
         if (btype == 0) { /* stored */
+            /* Align to byte boundary */
             br_align(br);
+            
+            /* Read LEN and NLEN (complement) */
             u16 len = (u16)br_read(br, 16);
-            br_read(br, 16); /* skip NLEN */
-            for (u16 i = 0; i < len && br->pos < br->size && pos < out_max; i++)
+            u16 nlen = (u16)br_read(br, 16);
+            
+            /* Verify NLEN is complement of LEN (optional but recommended) */
+            if ((len ^ 0xFFFF) != nlen) {
+                term_writeln("DEFLATE: NLEN mismatch!");
+                return -1;
+            }
+            
+            /* Copy raw bytes directly - bit reader is already aligned */
+            for (u16 i = 0; i < len && br->pos < br->size && pos < out_max; i++) {
                 out[pos++] = br->data[br->pos++];
+            }
+            
+            /* Re-sync bit reader buffer after byte-level access */
+            br->buf = 0;
+            br->bits = 0;
+            
         } else if (btype == 1 || btype == 2) {
             huffman_tree tl, td;
             u16 ll[288], dl[32];
@@ -168,7 +189,7 @@ static int deflate_decompress(bit_reader *br, u8 *out, u32 out_max, u32 *out_siz
                     ll[i] = (i <= 143) ? 8 : (i <= 255) ? 9 : (i <= 279) ? 7 : 8;
                 for (int i = 0; i < 32; i++) dl[i] = 5;
             } else { /* dynamic */
-                int hlit  = (int)br_read(br, 5) + 257;
+                int hlit = (int)br_read(br, 5) + 257;
                 int hdist = (int)br_read(br, 5) + 1;
                 int hclen = (int)br_read(br, 4) + 4;
                 static const u8 co[] = {16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15};
@@ -198,7 +219,7 @@ static int deflate_decompress(bit_reader *br, u8 *out, u32 out_max, u32 *out_siz
                 }
                 lumie_memset(ll, 0, sizeof(ll));
                 lumie_memset(dl, 0, sizeof(dl));
-                for (int i = 0; i < hlit;  i++) ll[i] = buf[i];
+                for (int i = 0; i < hlit; i++) ll[i] = buf[i];
                 for (int i = 0; i < hdist; i++) dl[i] = buf[hlit + i];
             }
 
@@ -221,6 +242,7 @@ static int deflate_decompress(bit_reader *br, u8 *out, u32 out_max, u32 *out_siz
                     if (ds < 0 || ds >= 30) return -1;
                     u32 dist = dst_base[ds] + br_read(br, dst_extra[ds]);
                     for (u32 i = 0; i < len; i++) {
+                        /* FIX: Check both bounds - pos >= out_max AND pos < dist */
                         if (pos >= out_max || pos < dist) return -1;
                         out[pos] = out[pos - dist];
                         pos++;
@@ -244,9 +266,10 @@ static int gzip_decompress(const u8 *in, u32 in_sz, u8 **out, u32 *out_sz) {
     if (flg & 0x02) hdr++;
     if (hdr >= in_sz) return -1;
 
-    u32 max_out = in_sz * 4;
-    if (max_out < 65536) max_out = 65536;
-    if (max_out > 256 * 1024 * 1024) max_out = 256 * 1024 * 1024;
+    u64 max_out64 = (u64)in_sz * 4;
+    if (max_out64 < 65536) max_out64 = 65536;
+    if (max_out64 > 256 * 1024 * 1024) max_out64 = 256 * 1024 * 1024;
+    u32 max_out = (u32)max_out64;
 
     *out = NULL;
     efi_status st = ((efi_bs_allocate_pool)g_BS->AllocatePool)(4, max_out, (void**)out);
@@ -262,7 +285,7 @@ static int gzip_decompress(const u8 *in, u32 in_sz, u8 **out, u32 *out_sz) {
     if (tr >= (int)hdr) {
         u32 ecrc = (u32)in[tr] | ((u32)in[tr+1]<<8) | ((u32)in[tr+2]<<16) | ((u32)in[tr+3]<<24);
         u32 acrc = crc32_calc(0xFFFFFFFF, *out, dec) ^ 0xFFFFFFFF;
-        if (acrc != ecrc) term_writeln("  CRC mismatch (ignored)");
+        if (acrc != ecrc) term_writeln(" CRC mismatch (ignored)");
     }
     *out_sz = dec;
     return 0;
@@ -325,7 +348,7 @@ static int tar_extract(const u8 *data, u32 size) {
         }
 
         term_set_fg(h->typeflag == '5' ? LUMIE_LIGHTCYAN : LUMIE_LIGHTGREEN);
-        term_write(h->typeflag == '5' ? "  [DIR]  " : "  [FILE] ");
+        term_write(h->typeflag == '5' ? " [DIR] " : " [FILE] ");
         term_set_fg(LUMIE_WHITE);
         term_writeln(path);
 
@@ -344,11 +367,11 @@ static int tar_extract(const u8 *data, u32 size) {
  * LZMA2 / XZ decompression
  * ================================================================ */
 
-/* ---------- Range Decoder ---------- */
+/* --- Range Decoder ---------- */
 typedef struct {
-    u32   range, code;
+    u32 range, code;
     const u8 *buf;
-    u32   pos, size;
+    u32 pos, size;
 } rc_t;
 
 static void rc_init(rc_t *rc, const u8 *buf, u32 size) {
@@ -404,14 +427,14 @@ static u32 rc_rev_tree(rc_t *rc, u16 *probs, int n) {
     return v;
 }
 
-/* ---------- LZMA constants ---------- */
-#define LZMA_STATES  12
-#define LZMA_POS_MAX  4
-#define LZMA_ALIGN    4
+/* --- LZMA constants ---------- */
+#define LZMA_STATES 12
+#define LZMA_POS_MAX 4
+#define LZMA_ALIGN 4
 #define LZMA_NUM_PROBS 9000
 
 /* lzma_next_state[state][type:0=lit,1=match,2=rep,3=shortrep] */
-static const u8 lzma_ns[LZMA_STATES][4] = {
+static const u8 lzma_ns[12][4] = {
     {0,7,8,9},{0,7,8,9},{0,7,8,9},{0,7,8,9},
     {1,7,8,9},{2,7,8,9},{3,7,8,9},
     {4,10,10,10},{5,10,10,10},{6,10,10,10},
@@ -428,41 +451,36 @@ static const u8 lzma_de[30] = {
     0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13
 };
 
-/* ---------- Probability layout (flat array) ---------- */
-#define P_IS_MATCH(st,ps)     (0 + (st)*LZMA_POS_MAX + (ps))
-#define P_IS_REP(st)          (48 + (st))
-#define P_IS_REP_G0(st)       (60 + (st))
-#define P_IS_REP_G1(st)       (72 + (st))
-#define P_IS_REP_G2(st)       (84 + (st))
+/* --- Probability layout (flat array) ---------- */
+#define P_IS_MATCH(st,ps) (0 + (st)*LZMA_POS_MAX + (ps))
+#define P_IS_REP(st) (48 + (st))
+#define P_IS_REP_G0(st) (60 + (st))
+#define P_IS_REP_G1(st) (72 + (st))
+#define P_IS_REP_G2(st) (84 + (st))
 #define P_IS_REP0_LONG(st,ps) (96 + (st)*LZMA_POS_MAX + (ps))
-#define P_LIT(coder,sub)      (144 + (coder)*4096 + (sub)*256)  /* sub-coder: prevByte context, 256 bits per sub */
-/* Actually each literal sub-coder uses a binary tree with 255 internal nodes.
-   So we need: 2 coders * 16 sub-coders * 255 = 8160, but max context is 1<<(lc+lp)=16.
-   But we use a simpler flat allocation: */
-#define LIT_CODER_SIZE        (16 * 255)  /* 4080 per coder */
+#define P_LIT(coder,sub) (144 + (coder)*4096 + (sub)*256)
+#define LIT_CODER_SIZE (16 * 255)  /* 4080 per coder */
 #define P_LIT2(coder,sub,bit) (144 + (coder)*LIT_CODER_SIZE + (sub)*255 + (bit))
-#define P_LEN_CHOICE(c)       (144 + 2*LIT_CODER_SIZE + (c))    /* offset ~8304 */
-#define P_LEN_LOW(c,ps,bit)   (8306 + (c)*4*4 + (ps)*4 + (bit))
-#define P_LEN_MID(c,ps,bit)   (8338 + (c)*4*4 + (ps)*4 + (bit))
-#define P_LEN_HIGH(c,bit)     (8370 + (c)*8 + (bit))
-#define P_DIST_SLOT(lp,b)     (8386 + (lp)*64 + (b)) /* 4*64*/  /* each slot bit uses 4 contexts per lenToPosState */
-/* Actually distSlot is decoded using a binary tree per lenToPosState.
-   We have 4 lenToPosStates × 63 probs = 252 probs starting at 8386 */
-#define P_ALIGN(b)            (8638 + (b))
+#define P_LEN_CHOICE(c) (144 + 2*LIT_CODER_SIZE + (c))  /* offset ~8304 */
+#define P_LEN_LOW(c,ps,bit) (8306 + (c)*4*4 + (ps)*4 + (bit))
+#define P_LEN_MID(c,ps,bit) (8338 + (c)*4*4 + (ps)*4 + (bit))
+#define P_LEN_HIGH(c,bit) (8370 + (c)*8 + (bit))
+#define P_DIST_SLOT(lp,b) (8386 + (lp)*64 + (b))
+#define P_ALIGN(b) (8638 + (b))
 
-/* ---------- LZMA decode context ---------- */
+/* --- LZMA decode context ---------- */
 typedef struct {
-    rc_t  rc;
-    u16   probs[LZMA_NUM_PROBS];
-    u8   *dict;
-    u32   dict_size, dict_pos;
-    int   state;
-    u32   rep0, rep1, rep2, rep3;
-    u8    prev_byte;
-    int   lc, lp, pb;
+    rc_t rc;
+    u16 probs[LZMA_NUM_PROBS];
+    u8 *dict;
+    u32 dict_size, dict_pos;
+    int state;
+    u32 rep0, rep1, rep2, rep3;
+    u8 prev_byte;
+    int lc, lp, pb;
 } lzma_t;
 
-/* ---------- Helper: decode a match length ---------- */
+/* --- Helper: decode a match length ---------- */
 static u32 lzma_len(lzma_t *lz, u32 pos_state, u16 *choice, u16 *low, u16 *mid, u16 *high) {
     if (!rc_bit(&lz->rc, choice)) {
         return rc_tree(&lz->rc, low + pos_state * 4, 4);
@@ -473,16 +491,16 @@ static u32 lzma_len(lzma_t *lz, u32 pos_state, u16 *choice, u16 *low, u16 *mid, 
     return 16 + rc_tree(&lz->rc, high, 8);
 }
 
-/* ---------- Decode one LZMA sequence ---------- */
+/* --- Decode one LZMA sequence ---------- */
 /* Returns 0 on success, -1 on error. Updates dict_pos, state, etc. */
 static int lzma_seq(lzma_t *lz) {
     u32 pos_state = lz->dict_pos & ((1 << lz->pb) - 1);
     u32 reps[4] = {lz->rep0, lz->rep1, lz->rep2, lz->rep3};
 
     if (!rc_bit(&lz->rc, &lz->probs[P_IS_MATCH(lz->state, pos_state)])) {
-        /* ----- Literal ----- */
+        /* --- Literal ----- */
         u32 lit_state = lz->prev_byte >> (8 - lz->lc);
-        u32 lit_pos   = (lz->dict_pos >> lz->lp) & ((1 << lz->lp) - 1);
+        u32 lit_pos = (lz->dict_pos >> lz->lp) & ((1 << lz->lp) - 1);
         u32 sub = lit_state * (1 << lz->lp) + lit_pos;
         u16 *probs;
         if (lz->state < 7 && lz->rep0 == lz->dict_pos + 1) {
@@ -493,9 +511,7 @@ static int lzma_seq(lzma_t *lz) {
         }
         u32 sym = 0;
         u32 m = 1;
-        /* Wait — the literal tree has 256 leaves (8-bit byte). The tree
-           indexes are 1 to 255 for internal nodes. Leaves are positions
-           256-511. But rc_tree returns (m - (1<<n)). */
+        /* Binary tree decoding for literal */
         for (int i = 0; i < 8; i++) {
             m = (m << 1) + rc_bit(&lz->rc, &probs[m]);
         }
@@ -509,7 +525,7 @@ static int lzma_seq(lzma_t *lz) {
         return 0;
     }
 
-    /* ----- Match / Rep match ----- */
+    /* --- Match / Rep match ----- */
     if (rc_bit(&lz->rc, &lz->probs[P_IS_REP(lz->state)])) {
         /* Rep match */
         if (rc_bit(&lz->rc, &lz->probs[P_IS_REP_G0(lz->state)])) {
@@ -520,9 +536,6 @@ static int lzma_seq(lzma_t *lz) {
             }
         } else {
             if (rc_bit(&lz->rc, &lz->probs[P_IS_REP0_LONG(lz->state, pos_state)])) {
-                reps[0] = reps[0]; /* keep same */
-                goto do_rep_match;
-            } else {
                 /* Short rep match: copy 1 byte */
                 if (lz->dict_pos >= lz->dict_size) return -1;
                 if (lz->dict_pos < reps[0]) return -1;
@@ -534,10 +547,9 @@ static int lzma_seq(lzma_t *lz) {
                 return 0;
             }
         }
-do_rep_match:
         {
             u32 len = lzma_len(lz, pos_state,
-                &lz->probs[P_LEN_CHOICE(0)], /* use coder 0 for rep */
+                &lz->probs[P_LEN_CHOICE(0)],
                 &lz->probs[P_LEN_LOW(0,0,0)],
                 &lz->probs[P_LEN_MID(0,0,0)],
                 &lz->probs[P_LEN_HIGH(0,0)]);
@@ -555,12 +567,12 @@ do_rep_match:
         return 0;
     }
 
-    /* ----- Simple match ----- */
+    /* --- Simple match ----- */
     {
         reps[3] = reps[2]; reps[2] = reps[1]; reps[1] = reps[0];
 
         u32 len = lzma_len(lz, pos_state,
-            &lz->probs[P_LEN_CHOICE(1)], /* coder 1 for match */
+            &lz->probs[P_LEN_CHOICE(1)],
             &lz->probs[P_LEN_LOW(1,0,0)],
             &lz->probs[P_LEN_MID(1,0,0)],
             &lz->probs[P_LEN_HIGH(1,0)]);
@@ -604,15 +616,17 @@ do_rep_match:
     return 0;
 }
 
-/* ---------- LZMA2 decoder ---------- */
+/* --- LZMA2 decoder ---------- */
 /* Allocates output via AllocatePool.
-   Returns decompressed size (>0) or <0 on error. */
+ * Returns decompressed size (>0) or <0 on error. */
+/* FIX: When ctrl >= 0x80, in_pos was updated incorrectly.
+ * We need to track the actual bytes consumed by the range decoder. */
 static int lzma2_decompress(const u8 *in, u32 in_sz, u8 **out, u32 *out_sz) {
     lzma_t lz;
     u32 out_max = 256 * 1024 * 1024; /* 256 MB max */
 
     /* Allocate dictionary + output buffer.
-       The output IS the dictionary in LZMA2 — it writes to the sliding window. */
+     * The output IS the dictionary in LZMA2 — it writes to the sliding window. */
     u8 *buf = NULL;
     efi_status st = ((efi_bs_allocate_pool)g_BS->AllocatePool)(4, out_max, (void**)&buf);
     if (EFI_ERROR(st) || !buf) return -1;
@@ -665,6 +679,7 @@ static int lzma2_decompress(const u8 *in, u32 in_sz, u8 **out, u32 *out_sz) {
                 if (lz.rc.pos >= lz.rc.size) break;
                 if (lzma_seq(&lz) < 0) goto err;
             }
+            /* FIX: Update in_pos based on actual range decoder position */
             in_pos = (u32)((u64)(lz.rc.buf - in) + lz.rc.pos);
             continue;
         }
@@ -695,6 +710,7 @@ static int lzma2_decompress(const u8 *in, u32 in_sz, u8 **out, u32 *out_sz) {
                 if (lz.rc.pos >= lz.rc.size) break;
                 if (lzma_seq(&lz) < 0) goto err;
             }
+            /* FIX: Update in_pos based on actual range decoder position */
             in_pos = (u32)((u64)(lz.rc.buf - in) + lz.rc.pos);
             continue;
         }
@@ -724,14 +740,22 @@ static int lzma2_decompress(const u8 *in, u32 in_sz, u8 **out, u32 *out_sz) {
 
             if (sz > in_sz - in_pos) goto err;
             if (in_pos + 5 > in_sz) goto err;
-            rc_init(&lz.rc, in + in_pos, sz);
+            
+            /* Skip LZMA properties FIRST (5 bytes), then init range decoder on actual data */
             in_pos += 5;
-
+            u32 rc_start = in_pos;
+            rc_init(&lz.rc, in + in_pos, sz - 5);
+            
+            /* Decode until end of LZMA2 data */
             while (lz.rc.pos < lz.rc.size) {
                 if (lz.dict_pos >= lz.dict_size) break;
                 if (lzma_seq(&lz) < 0) break;
             }
-            in_pos += sz;
+            
+            /* FIX: Update in_pos correctly based on how much data the range decoder consumed */
+            /* The range decoder consumed (sz) bytes from rc_start, so in_pos = rc_start + sz */
+            in_pos = rc_start + sz;
+            
             continue;
         }
     }
@@ -756,7 +780,7 @@ err:
     return -1;
 }
 
-/* ---------- XZ container parser ---------- */
+/* --- XZ container parser ---------- */
 static int xz_decompress(const u8 *in, u32 in_sz, u8 **out, u32 *out_sz) {
     /* XZ Stream Header: FD 37 7A 58 5A 00 */
     if (in_sz < 12) return -1;
@@ -772,16 +796,11 @@ static int xz_decompress(const u8 *in, u32 in_sz, u8 **out, u32 *out_sz) {
     off += bh_size;
     if (off >= in_sz) return -1;
 
-    /* Remaining data is LZMA2 + Block Padding + Check + Index + Footer.
-       For simplicity, extract just the LZMA2 data.
-       XZ block contains: Block Header + Block Data (LZMA2) + Padding + Check.
-       We skip the Block Header and decode LZMA2 until we hit the Index. */
-
     /* The block data is LZMA2, and we just pass it to lzma2_decompress.
-       But we need to know where the LZMA2 data ends (before block padding).
-       For now, pass the rest of the data and let lzma2_decompress stop at 0x00. */
+     * But we need to know where the LZMA2 data ends (before block padding).
+     * For now, pass the rest of the data and let lzma2_decompress stop at 0x00. */
 
-    term_writeln("  Format: XZ container");
+    term_writeln(" Format: XZ container");
 
     u32 lzma2_sz = in_sz - off;
     u8 *dec = NULL;
@@ -789,7 +808,7 @@ static int xz_decompress(const u8 *in, u32 in_sz, u8 **out, u32 *out_sz) {
     int ret = lzma2_decompress(in + off, lzma2_sz, &dec, &dec_sz);
 
     if (ret < 0 || !dec) {
-        term_writeln("  LZMA2 decompression failed");
+        term_writeln(" LZMA2 decompression failed");
         return -1;
     }
 
@@ -802,7 +821,7 @@ static int xz_decompress(const u8 *in, u32 in_sz, u8 **out, u32 *out_sz) {
 int extract_gzip_tar(const char *filename) {
     if (!filename) {
         term_set_fg(LUMIE_LIGHTRED);
-        term_writeln("Usage: extract <file.tar.gz>");
+        term_writeln("Usage: extract <file>");
         term_set_fg(LUMIE_LIGHTGRAY);
         return -1;
     }

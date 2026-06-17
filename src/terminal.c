@@ -1,14 +1,13 @@
 #include "terminal.h"
 #include "gop.h"
+#include "mm.h"
 
 #define TAB_WIDTH 4
 
-extern efi_boot_services *g_BS;
-
 static int term_x = 0, term_y = 0;
 static int term_cols, term_rows;
-static int fg_color = 0x00C0C0C0;
-static int bg_color = 0x00000000;
+static int fg_color = 0x00FFFFFF;
+static int bg_color = 0x000000AA;
 static int cursor_enabled = 1;
 
 static char *screen_buf = NULL;
@@ -19,9 +18,9 @@ void term_init() {
     term_cols = gop_get_width() / 8;
     term_rows = gop_get_height() / 16;
     screen_buf_size = term_cols * term_rows;
-    if (screen_buf_size > 0 && g_BS) {
-        ((efi_bs_allocate_pool)g_BS->AllocatePool)(EFI_BOOT_SERVICES_DATA, screen_buf_size, (void**)&screen_buf);
-        ((efi_bs_allocate_pool)g_BS->AllocatePool)(EFI_BOOT_SERVICES_DATA, screen_buf_size * sizeof(u32), (void**)&color_buf);
+    if (screen_buf_size > 0) {
+        screen_buf = kmalloc(screen_buf_size);
+        color_buf = kmalloc(screen_buf_size * sizeof(u32));
         if (screen_buf) lumie_memset(screen_buf, ' ', screen_buf_size);
     }
 }
@@ -38,9 +37,9 @@ static void update_line_from_buf(int row) {
 }
 
 void term_clear(lumie_color bg) {
-    bg_color = gop_make_color(0, 0, 0);
+    bg_color = gop_make_color(0, 0, 0xAA);
     if (bg == LUMIE_BLACK) bg_color = gop_make_color(0, 0, 0);
-    else if (bg == LUMIE_BLUE) bg_color = gop_make_color(0, 0, 0xAA);
+    else if (bg == LUMIE_BLUE) bg_color = gop_make_color(0x00, 0x00, 0xAA);
     else if (bg == LUMIE_GREEN) bg_color = gop_make_color(0, 0xAA, 0);
     else if (bg == LUMIE_CYAN) bg_color = gop_make_color(0, 0xAA, 0xAA);
     else if (bg == LUMIE_RED) bg_color = gop_make_color(0xAA, 0, 0);
@@ -147,7 +146,7 @@ void term_set_bg(lumie_color c) {
     switch (c) {
         case LUMIE_BLACK:       bg_color = gop_make_color(0,0,0); break;
         case LUMIE_WHITE:       bg_color = gop_make_color(0xAA,0xAA,0xAA); break;
-        case LUMIE_BLUE:        bg_color = gop_make_color(0,0,0x55); break;
+        case LUMIE_BLUE:        bg_color = gop_make_color(0x00,0x00,0xAA); break;
         case LUMIE_DARKGRAY:    bg_color = gop_make_color(0x33,0x33,0x33); break;
         default:                bg_color = gop_make_color(0,0,0); break;
     }

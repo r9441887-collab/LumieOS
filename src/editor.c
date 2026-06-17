@@ -27,7 +27,7 @@ static editor_state ed;
 static void editor_status_msg(const char *msg) {
     int cols = term_get_width();
     u32 fg = gop_make_color(0xFF, 0xFF, 0xFF);
-    u32 bg = gop_make_color(0, 0, 0x55);
+    u32 bg = gop_make_color(0x00, 0x00, 0x80);
     int yy = (term_get_height() - 1) * 16;
     gop_fill_rect(0, yy, gop_get_width(), 16, bg);
     for (int i = 0; msg[i] && i < cols; i++)
@@ -39,8 +39,8 @@ static void editor_render() {
     int cols = term_get_width();
     u32 bg = gop_make_color(0, 0, 0);
     int status_row = rows * 16;
-    u32 fg_status = gop_make_color(0xAA, 0xAA, 0xAA);
-    u32 bg_status = gop_make_color(0, 0, 0x55);
+    u32 fg_status = gop_make_color(0xFF, 0xFF, 0xFF);
+    u32 bg_status = gop_make_color(0x00, 0x00, 0x80);
 
     /* Clear text area */
     gop_fill_rect(0, 0, gop_get_width(), status_row, bg);
@@ -188,13 +188,14 @@ static void editor_save() {
         total_size += lumie_strlen(ed.lines[i]) + 1;
     }
 
-    /* Allocate buffer */
+    /* Allocate buffer based on actual size */
+    u32 alloc_sz = total_size + 1 < 64 * 1024 ? total_size + 1 : 64 * 1024;
     char *buf = NULL;
-    if (((efi_bs_allocate_pool)g_BS->AllocatePool)(EFI_BOOT_SERVICES_DATA, 64 * 1024, (void**)&buf) != 0 || !buf) {
+    if (((efi_bs_allocate_pool)g_BS->AllocatePool)(EFI_BOOT_SERVICES_DATA, alloc_sz, (void**)&buf) != 0 || !buf) {
         editor_status_msg("Out of memory!");
         return;
     }
-    if (total_size > 64 * 1024 - 1) {
+    if (total_size > (int)alloc_sz - 1) {
         editor_status_msg("File too large to save!");
         ((efi_bs_free_pool)g_BS->FreePool)(buf);
         return;
@@ -369,5 +370,5 @@ done_load:
     }
 
     term_set_cursor(1);
-    term_clear(LUMIE_BLACK);
+    term_clear(LUMIE_BLUE);
 }
